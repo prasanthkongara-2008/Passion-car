@@ -182,10 +182,10 @@ export default function App() {
 
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("passioncar_theme");
+      const saved = localStorage.getItem("passioncar_theme_pref");
       if (saved === "light" || saved === "dark") return saved;
     }
-    return "dark";
+    return "light";
   });
 
   useEffect(() => {
@@ -193,10 +193,15 @@ export default function App() {
     if (theme === "light") {
       document.documentElement.classList.add("light");
       document.body.classList.add("light-theme");
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", "#f8fafc");
     } else {
       document.documentElement.classList.remove("light");
       document.body.classList.remove("light-theme");
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", "#07090e");
     }
+    localStorage.setItem("passioncar_theme_pref", theme);
     localStorage.setItem("passioncar_theme", theme);
   }, [theme]);
 
@@ -500,6 +505,7 @@ function PublicView({
               aria-label="Toggle light or dark theme"
             >
               {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+              <span className="hidden-mobile">{theme === "dark" ? "Light" : "Dark"}</span>
             </button>
 
             
@@ -1371,8 +1377,8 @@ function PublicView({
         <div className="container">
           <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 40px" }}>
             <div className="badge badge-red" style={{ marginBottom: 12, display: "inline-flex" }}>
-              <ImageIcon size={14} />
-              <span>Showroom Showcase</span>
+              <Users size={14} />
+              <span>Happy Customers</span>
             </div>
             <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", color: "var(--text-main)", marginBottom: 16 }}>
               Showroom & Delivery Gallery
@@ -1456,7 +1462,7 @@ function PublicView({
                     className="btn btn-outline"
                   >
                     <ImageIcon size={16} />
-                    <span>View More Photos ({galleryItems.length - galleryDisplayCount} remaining)</span>
+                    <span>View More Photos</span>
                   </button>
                 </div>
               )}
