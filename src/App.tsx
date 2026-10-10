@@ -2422,27 +2422,26 @@ function PublicView({
             </div>
 
             <div className="footer-nav-row">
-              <a href="#home" className="hover:text-red-500">Home</a>
-              <a href="#inventory" className="hover:text-red-500">Buy Cars</a>
-              <a href="#gallery" className="hover:text-red-500">Gallery</a>
-              <a href="#sell" className="hover:text-red-500">Sell Car</a>
-              <a href="#services" className="hover:text-red-500">Services</a>
-              <a href="#blog" className="hover:text-red-500">Blog</a>
-              <a href="#emi-calculator" className="hover:text-red-500">EMI Calculator</a>
-              <a href="#about" className="hover:text-red-500">About</a>
-              <a href="#contact" className="hover:text-red-500">Contact</a>
+              <a href="#home" className="footer-nav-link">Home</a>
+              <a href="#inventory" className="footer-nav-link">Buy Cars</a>
+              <a href="#gallery" className="footer-nav-link">Gallery</a>
+              <a href="#sell" className="footer-nav-link">Sell Car</a>
+              <a href="#services" className="footer-nav-link">Services</a>
+              <a href="#blog" className="footer-nav-link">Blog</a>
+              <a href="#emi-calculator" className="footer-nav-link">EMI Calculator</a>
+              <a href="#about" className="footer-nav-link">About</a>
+              <a href="#contact" className="footer-nav-link">Contact</a>
             </div>
           </div>
 
-          <div className="footer-bottom-bar" style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-dim)", flexWrap: "wrap", gap: 14 }}>
+          <div className="footer-bottom-bar" style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, flexWrap: "wrap", gap: 14 }}>
             <span>© {new Date().getFullYear()} Passion Car. All rights reserved.</span>
             <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               <a
                 href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: "var(--text-dim)", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-                className="hover:text-red-500"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
               >
                 <InstagramIcon size={16} />
                 <span>@passsioncars</span>
@@ -2451,8 +2450,7 @@ function PublicView({
                 href="https://www.youtube.com/@passioncars_madhapur"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: "var(--text-dim)", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-                className="hover:text-red-500"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
               >
                 <YoutubeIcon size={16} />
                 <span>@passioncars_madhapur</span>

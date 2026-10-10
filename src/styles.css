@@ -2339,7 +2339,54 @@ body.light-theme .hero-slide-img {
   flex-wrap: wrap;
   gap: 12px 20px;
   font-size: 13px;
-  color: var(--text-muted);
+}
+
+.footer-nav-row a,
+.footer-nav-link {
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.footer-nav-row a:hover,
+.footer-nav-link:hover {
+  color: var(--primary) !important;
+}
+
+body.light-theme .footer-nav-row a,
+body.light-theme .footer-nav-link,
+[data-theme="light"] .footer-nav-row a,
+[data-theme="light"] .footer-nav-link {
+  color: #475569;
+}
+
+body.light-theme .footer-nav-row a:hover,
+body.light-theme .footer-nav-link:hover,
+[data-theme="light"] .footer-nav-row a:hover,
+[data-theme="light"] .footer-nav-link:hover {
+  color: var(--primary) !important;
+}
+
+.footer-bottom-bar {
+  color: #94a3b8;
+}
+
+.footer-bottom-bar a {
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-bottom-bar a:hover {
+  color: var(--primary) !important;
+}
+
+body.light-theme .footer-bottom-bar,
+body.light-theme .footer-bottom-bar a,
+[data-theme="light"] .footer-bottom-bar,
+[data-theme="light"] .footer-bottom-bar a {
+  color: #64748b;
 }
 
 @media (min-width: 1181px) {
