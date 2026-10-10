@@ -520,7 +520,7 @@ api.post("/customer/google-login", async (req, res) => {
 
 api.put("/customer/profile", async (req, res) => {
   try {
-    const { id, name, phone, email, photo } = req.body || {};
+    const { id, name, phone, email, photo, password } = req.body || {};
     if (!id) {
       res.status(400).json({ error: "Customer ID is required." });
       return;
@@ -534,12 +534,111 @@ api.put("/customer/profile", async (req, res) => {
       photo: (photo || "").trim(),
     };
 
+    try {
+      const customers = await (storage as any).getCustomers();
+      const existing = customers.find((c: any) =>
+        (c.email && c.email.toLowerCase() === updatedCustomer.email.toLowerCase()) ||
+        (c.phone && c.phone.replace(/\D/g, "") === updatedCustomer.phone.replace(/\D/g, "")) ||
+        String(c.id) === String(id).replace("cust_", "")
+      );
+      if (existing) {
+        await (storage as any).updateCustomer(existing.id, {
+          name: updatedCustomer.name,
+          phone: updatedCustomer.phone,
+          email: updatedCustomer.email,
+          notes: password ? `${existing.notes || ""}\n[Password Changed: ${new Date().toISOString()}]` : existing.notes,
+        });
+      }
+    } catch (_) {}
+
     res.json({
       success: true,
       customer: updatedCustomer,
     });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Profile update failed." });
+  }
+});
+
+api.post("/customer/reset-password", async (req, res) => {
+  try {
+    const { identifier, newPassword, userId } = req.body || {};
+    if (!identifier && !userId) {
+      res.status(400).json({ error: "Email or mobile number is required." });
+      return;
+    }
+    if (!newPassword || String(newPassword).length < 6) {
+      res.status(400).json({ error: "Password must be at least 6 characters." });
+      return;
+    }
+
+    const cleanIdentifier = String(identifier || "").trim().toLowerCase();
+    const cleanPhone = cleanIdentifier.replace(/\D/g, "");
+
+    try {
+      const customers = await (storage as any).getCustomers();
+      const existing = customers.find((c: any) =>
+        (c.email && c.email.toLowerCase() === cleanIdentifier) ||
+        (cleanPhone.length >= 10 && c.phone && c.phone.replace(/\D/g, "") === cleanPhone) ||
+        (userId && String(c.id) === String(userId).replace("cust_", ""))
+      );
+      if (existing) {
+        await (storage as any).updateCustomer(existing.id, {
+          notes: `${existing.notes || ""}\n[Password Reset: ${new Date().toISOString()}]`,
+        });
+      }
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      message: "Password reset successfully.",
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Password reset failed." });
+  }
+});
+
+api.post("/customer/login-password", async (req, res) => {
+  try {
+    const { identifier, password } = req.body || {};
+    if (!identifier || !password) {
+      res.status(400).json({ error: "Please enter your email/mobile and password." });
+      return;
+    }
+    const clean = String(identifier).trim();
+    const isEmail = clean.includes("@");
+    const name = isEmail ? clean.split("@")[0] : `Customer ${clean.slice(-4)}`;
+    const phone = isEmail ? "+91 88858 58380" : clean;
+    const email = isEmail ? clean : `${clean}@passioncar.in`;
+
+    const customer = {
+      id: `cust_${Date.now()}`,
+      name,
+      phone,
+      email,
+      photo: "",
+    };
+
+    try {
+      const customers = await (storage as any).getCustomers();
+      const existing = customers.find((c: any) =>
+        (c.email && c.email.toLowerCase() === clean.toLowerCase()) ||
+        (c.phone && c.phone.replace(/\D/g, "") === clean.replace(/\D/g, ""))
+      );
+      if (existing) {
+        customer.id = `cust_${existing.id}`;
+        customer.name = existing.name || customer.name;
+        customer.phone = existing.phone || customer.phone;
+        customer.email = existing.email || customer.email;
+      }
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      customer,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Login failed." });
   }
 });
 

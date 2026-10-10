@@ -766,7 +766,7 @@ body.light-theme .hero-text-glass {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: 10050;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(12px);
   display: flex;
@@ -1086,12 +1086,87 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: #ffffff;
 }
 
+.brand-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brand-action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.brand-btn-whatsapp {
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.35);
+}
+
+.brand-btn-maps {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+
+.brand-btn-instagram {
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(220, 39, 67, 0.35);
+}
+
+.brand-btn-youtube {
+  background: #ff0000;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(255, 0, 0, 0.35);
+}
+
+@media (max-width: 600px) {
+  .brand-action-btn {
+    width: 100% !important;
+  }
+}
+
 @media (max-width: 768px) {
-  .desktop-floating-stack,
+  .desktop-floating-stack {
+    bottom: 74px;
+    right: 14px;
+    gap: 8px;
+    z-index: 999;
+    align-items: flex-end;
+  }
+
   .desktop-floating-whatsapp,
   .desktop-floating-instagram,
   .desktop-floating-youtube {
+    display: inline-flex !important;
+    width: auto;
+    min-width: 154px;
+    height: 38px;
+    padding: 0 14px;
+    font-size: 12px;
+    gap: 6px;
+  }
+}
+
+@media (min-width: 1181px) {
+  .mobile-header-signin-btn,
+  .mobile-header-user-btn {
     display: none !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mobile-header-signin-btn,
+  .mobile-header-user-btn {
+    display: inline-flex !important;
   }
 }
 

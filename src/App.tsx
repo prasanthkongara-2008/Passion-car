@@ -16,6 +16,9 @@ import {
   CheckCircle2,
   ArrowRight,
   Eye,
+  EyeOff,
+  Key,
+  Settings,
   Trash2,
   Edit3,
   Plus,
@@ -447,6 +450,7 @@ function PublicView({
   const [initialBookingPhone, setInitialBookingPhone] = useState<string>("");
 
   const handleOpenBookings = (phonePrefill?: string) => {
+    setMobileMenuOpen(false);
     if (phonePrefill) {
       setInitialBookingPhone(phonePrefill);
     }
@@ -472,9 +476,29 @@ function PublicView({
 
   const handleCloseMenu = () => {
     setMobileMenuOpen(false);
-    if (window.history.state?.modal === "menu") {
-      window.history.back();
+    if (window.location.hash === "#menu") {
+      try {
+        window.history.replaceState({}, "", window.location.pathname + window.location.search);
+      } catch {}
     }
+  };
+
+  const handleMenuNav = (targetId: string) => {
+    setMobileMenuOpen(false);
+    if (window.location.hash === "#menu") {
+      try {
+        window.history.replaceState({}, "", window.location.pathname + window.location.search);
+      } catch {}
+    }
+    const cleanId = targetId.replace(/^#/, "");
+    setTimeout(() => {
+      const el = document.getElementById(cleanId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      } else {
+        window.location.hash = `#${cleanId}`;
+      }
+    }, 50);
   };
 
   const handleOpenInquiry = (opts: {
@@ -482,6 +506,7 @@ function PublicView({
     vehicleId?: number;
     vehicleTitle?: string;
   }) => {
+    setMobileMenuOpen(false);
     setInquiryModal({ open: true, ...opts });
     window.history.pushState({ modal: "inquiry", ...opts }, "", `#inquiry-${opts.type}`);
   };
@@ -494,6 +519,7 @@ function PublicView({
   };
 
   const handleOpenService = () => {
+    setMobileMenuOpen(false);
     setServiceModalOpen(true);
     window.history.pushState({ modal: "service" }, "", "#service-book");
   };
@@ -518,6 +544,7 @@ function PublicView({
   };
 
   const handleOpenCustomerAuth = () => {
+    setMobileMenuOpen(false);
     setCustomerAuthModal(true);
     window.history.pushState({ modal: "auth" }, "", "#signin");
   };
@@ -530,6 +557,7 @@ function PublicView({
   };
 
   const handleOpenCustomerProfile = () => {
+    setMobileMenuOpen(false);
     setCustomerProfileModal(true);
     window.history.pushState({ modal: "profile" }, "", "#profile");
   };
@@ -539,6 +567,13 @@ function PublicView({
     if (window.history.state?.modal === "profile") {
       window.history.back();
     }
+  };
+
+  const handleLogoutCustomer = () => {
+    setCustomerUser(null);
+    try {
+      localStorage.removeItem("passioncar_customer_session");
+    } catch (_) {}
   };
 
   const handleOpenGuide = (guide: { title: string; content: string; date: string }) => {
@@ -807,7 +842,6 @@ function PublicView({
           </nav>
 
           <div className="nav-actions">
-            
             <button
               onClick={toggleTheme}
               className="theme-toggle-btn"
@@ -818,7 +852,76 @@ function PublicView({
               <span className="hidden-mobile">{theme === "dark" ? "Light" : "Dark"}</span>
             </button>
 
-            
+            {customerUser ? (
+              <button
+                type="button"
+                onClick={handleOpenCustomerProfile}
+                className="mobile-header-user-btn"
+                title="Customer Profile & Settings"
+                style={{
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "5px 10px",
+                  borderRadius: "var(--radius-full)",
+                  background: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  color: "var(--text-main)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {customerUser.photo ? (
+                  <img
+                    src={customerUser.photo}
+                    alt={customerUser.name}
+                    style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      background: "var(--primary)",
+                      color: "#ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 11,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {customerUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span>{customerUser.name.split(" ")[0]}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleOpenCustomerAuth}
+                className="mobile-header-signin-btn"
+                title="Sign In"
+                style={{
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 12px",
+                  borderRadius: "var(--radius-full)",
+                  background: "var(--primary)",
+                  color: "#ffffff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(239, 68, 68, 0.35)",
+                }}
+              >
+                <User size={13} />
+                <span>Sign In</span>
+              </button>
+            )}
+
             <a
               href={`tel:+${rawPhone}`}
               className="btn btn-outline btn-sm nav-btn-desktop"
@@ -829,7 +932,6 @@ function PublicView({
               <span className="nav-btn-phone-short">Call</span>
             </a>
 
-            
             <a
               href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20your%20verified%20cars.`}
               target="_blank"
@@ -840,7 +942,6 @@ function PublicView({
               <span>WhatsApp</span>
             </a>
 
-            
             <button
               onClick={handleOpenMenu}
               className="mobile-menu-btn"
@@ -874,15 +975,145 @@ function PublicView({
               </button>
             </div>
 
+            {customerUser ? (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 14,
+                  background: "var(--bg-card)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {customerUser.photo ? (
+                    <img
+                      src={customerUser.photo}
+                      alt={customerUser.name}
+                      style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--primary)" }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: "50%",
+                        background: "var(--primary)",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 18,
+                        fontWeight: 800,
+                        border: "2px solid rgba(255, 255, 255, 0.2)",
+                      }}
+                    >
+                      {customerUser.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {customerUser.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {customerUser.email || customerUser.phone || "Signed in"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setTimeout(() => handleOpenCustomerProfile(), 50);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 700 }}
+                  >
+                    <Settings size={14} />
+                    <span>Profile & Settings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogoutCustomer();
+                    }}
+                    className="btn btn-glass btn-sm"
+                    style={{ justifyContent: "center", gap: 6, fontSize: 12, color: "#ef4444" }}
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 14,
+                  background: "linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, var(--bg-card) 100%)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid rgba(239, 68, 68, 0.25)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      background: "rgba(239, 68, 68, 0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--primary)",
+                    }}
+                  >
+                    <User size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: "var(--text-main)" }}>
+                      Customer Account
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      Sign in for bookings, test drives & profile
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenCustomerAuth(), 50);
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ width: "100%", justifyContent: "center", gap: 8, fontWeight: 700 }}
+                >
+                  <User size={15} />
+                  <span>Sign In / Create Account</span>
+                </button>
+              </div>
+            )}
+
             <div style={{ marginBottom: 16, padding: 12, background: "var(--bg-card)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
                 Direct Forms & Booking
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <button
+                  type="button"
                   onClick={() => {
-                    handleCloseMenu();
-                    handleOpenBookings();
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenBookings(), 50);
                   }}
                   className="btn btn-primary btn-sm"
                   style={{
@@ -898,9 +1129,10 @@ function PublicView({
                   <strong>My Bookings & Service Tokens</strong>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    handleCloseMenu();
-                    handleOpenInquiry({ type: "test_drive" });
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenInquiry({ type: "test_drive" }), 50);
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -909,9 +1141,10 @@ function PublicView({
                   <span>Test Drive</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    handleCloseMenu();
-                    handleOpenService();
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenService(), 50);
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -920,9 +1153,10 @@ function PublicView({
                   <span>Book Service</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    handleCloseMenu();
-                    handleOpenInquiry({ type: "sell" });
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenInquiry({ type: "sell" }), 50);
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -931,9 +1165,10 @@ function PublicView({
                   <span>Sell Car</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    handleCloseMenu();
-                    handleOpenInquiry({ type: "exchange" });
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenInquiry({ type: "exchange" }), 50);
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -942,9 +1177,10 @@ function PublicView({
                   <span>Exchange</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    handleCloseMenu();
-                    handleOpenInquiry({ type: "contact" });
+                    setMobileMenuOpen(false);
+                    setTimeout(() => handleOpenInquiry({ type: "contact" }), 50);
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px", gridColumn: "span 2" }}
@@ -956,143 +1192,132 @@ function PublicView({
             </div>
 
             <div className="mobile-drawer-nav">
-              <a href="#home" onClick={handleCloseMenu} className="mobile-nav-item">
-                <Car size={16} /> Home
-              </a>
               <button
+                type="button"
+                onClick={() => handleMenuNav("home")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Car size={16} /> <span>Home</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => {
-                  handleCloseMenu();
-                  handleOpenBookings();
+                  setMobileMenuOpen(false);
+                  setTimeout(() => handleOpenBookings(), 50);
                 }}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12, fontWeight: 700 }}
               >
-                <Ticket size={16} className="text-red-500" /> My Bookings & Tokens
+                <Ticket size={16} className="text-red-500" /> <span>My Bookings & Tokens</span>
               </button>
-              <a href="#inventory" onClick={handleCloseMenu} className="mobile-nav-item">
-                <Search size={16} /> Buy Cars
-              </a>
-              <a href="#gallery" onClick={handleCloseMenu} className="mobile-nav-item">
-                <ImageIcon size={16} /> Showroom Gallery
-              </a>
               <button
-                onClick={() => {
-                  handleCloseMenu();
-                  handleOpenInquiry({ type: "sell" });
-                }}
+                type="button"
+                onClick={() => handleMenuNav("inventory")}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
-                <TrendingUp size={16} /> Sell Car Form
+                <Search size={16} /> <span>Buy Cars</span>
               </button>
-              <a href="#services" onClick={handleCloseMenu} className="mobile-nav-item">
-                <Award size={16} /> Services
-              </a>
-              <a href="#blog" onClick={handleCloseMenu} className="mobile-nav-item">
-                <FileText size={16} /> Blog
-              </a>
               <button
-                onClick={() => {
-                  handleCloseMenu();
-                  handleOpenInquiry({ type: "contact" });
-                }}
+                type="button"
+                onClick={() => handleMenuNav("gallery")}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
-                <ShieldCheck size={16} /> RTI / RC Transfer Form
+                <ImageIcon size={16} /> <span>Showroom Gallery</span>
               </button>
               <button
-                onClick={() => {
-                  handleCloseMenu();
-                  handleOpenInquiry({ type: "exchange" });
-                }}
-                className="mobile-nav-item"
-                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
-              >
-                <RefreshCw size={16} /> Exchange Car Form
-              </button>
-              <button
-                onClick={() => {
-                  handleCloseMenu();
-                  handleOpenService();
-                }}
-                className="mobile-nav-item"
-                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
-              >
-                <Sparkles size={16} /> Car Service Booking Form
-              </button>
-              <a href="#emi-calculator" onClick={handleCloseMenu} className="mobile-nav-item">
-                <Calculator size={16} /> EMI Calculator
-              </a>
-              <a href="#reviews" onClick={handleCloseMenu} className="mobile-nav-item">
-                <Star size={16} /> Customer Reviews
-              </a>
-              <a href="#about" onClick={handleCloseMenu} className="mobile-nav-item">
-                <Info size={16} /> About Us
-              </a>
-              <a href="#contact" onClick={handleCloseMenu} className="mobile-nav-item">
-                <MapPin size={16} /> Visit Showroom & Map
-              </a>
-              {customerUser ? (
-                <button
-                  onClick={() => {
-                    handleCloseMenu();
-                    handleOpenCustomerProfile();
-                  }}
-                  className="mobile-nav-item"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    textAlign: "left",
-                    width: "100%",
-                    cursor: "pointer",
-                    font: "inherit",
-                    color: "inherit",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <User size={16} /> My Account ({customerUser.name.split(" ")[0]})
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    handleCloseMenu();
-                    handleOpenCustomerAuth();
-                  }}
-                  className="mobile-nav-item"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    textAlign: "left",
-                    width: "100%",
-                    cursor: "pointer",
-                    font: "inherit",
-                    color: "inherit",
-                  }}
-                >
-                  <User size={16} /> Buyer Sign In
-                </button>
-              )}
-              <button
+                type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onGoToAdmin?.();
+                  setTimeout(() => handleOpenInquiry({ type: "sell" }), 50);
                 }}
                 className="mobile-nav-item"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  textAlign: "left",
-                  width: "100%",
-                  cursor: "pointer",
-                  font: "inherit",
-                  color: "var(--primary)",
-                  fontWeight: 700,
-                }}
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
-                <Lock size={16} /> Admin Portal
+                <TrendingUp size={16} /> <span>Sell Car Form</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("services")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Award size={16} /> <span>Services</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("blog")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <FileText size={16} /> <span>Blog</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setTimeout(() => handleOpenInquiry({ type: "contact" }), 50);
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <ShieldCheck size={16} /> <span>RTI / RC Transfer Form</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setTimeout(() => handleOpenInquiry({ type: "exchange" }), 50);
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <RefreshCw size={16} /> <span>Exchange Car Form</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setTimeout(() => handleOpenService(), 50);
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Sparkles size={16} /> <span>Car Service Booking Form</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("emi-calculator")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Calculator size={16} /> <span>EMI Calculator</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("reviews")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Star size={16} /> <span>Customer Reviews</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("about")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Info size={16} /> <span>About Us</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("contact")}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <MapPin size={16} /> <span>Visit Showroom & Map</span>
               </button>
             </div>
 
@@ -1119,11 +1344,72 @@ function PublicView({
                 href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-primary btn-sm"
-                style={{ width: "100%", justifyContent: "center" }}
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "11px 16px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "#25D366",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(37, 211, 102, 0.35)",
+                }}
               >
-                <MessageSquare size={14} />
+                <MessageSquare size={16} fill="#ffffff" color="#ffffff" />
                 <span>WhatsApp Us</span>
+              </a>
+
+              <a
+                href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "11px 16px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(220, 39, 67, 0.35)",
+                }}
+              >
+                <InstagramIcon size={16} color="#ffffff" />
+                <span>Follow on Instagram</span>
+              </a>
+
+              <a
+                href="https://www.youtube.com/@passioncars_madhapur"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "11px 16px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "#FF0000",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  textDecoration: "none",
+                  boxShadow: "0 4px 14px rgba(255, 0, 0, 0.35)",
+                }}
+              >
+                <YoutubeIcon size={16} color="#ffffff" />
+                <span>Watch on YouTube</span>
               </a>
             </div>
           </div>
@@ -1961,99 +2247,53 @@ function PublicView({
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 12 }}>
-                <a
-                  href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20visiting%20your%20showroom.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "12px 24px",
-                    borderRadius: "var(--radius-full)",
-                    background: "#25d366",
-                    color: "#ffffff",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(37, 211, 102, 0.35)",
-                  }}
-                >
-                  <MessageSquare size={18} fill="#ffffff" color="#ffffff" />
-                  <span>Chat on WhatsApp</span>
-                </a>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}>
+                <div className="brand-action-row" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <a
+                    href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20visiting%20your%20showroom.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="brand-action-btn brand-btn-whatsapp"
+                  >
+                    <MessageSquare size={18} fill="#ffffff" color="#ffffff" />
+                    <span>Chat on WhatsApp</span>
+                  </a>
 
-                <a
-                  href="https://maps.app.goo.gl/7JDT4jXxFwYBKMNF7"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-outline"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "12px 24px",
-                    borderRadius: "var(--radius-full)",
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  <MapPin size={16} />
-                  <span>Open in Google Maps</span>
-                  <ExternalLink size={14} />
-                </a>
-              </div>
+                  <a
+                    href="https://maps.app.goo.gl/7JDT4jXxFwYBKMNF7"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="brand-action-btn brand-btn-maps"
+                  >
+                    <MapPin size={18} />
+                    <span>Open in Google Maps</span>
+                    <ExternalLink size={14} />
+                  </a>
+                </div>
 
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
-                <a
-                  href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "12px 24px",
-                    borderRadius: "var(--radius-full)",
-                    background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
-                    color: "#ffffff",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(220, 39, 67, 0.35)",
-                  }}
-                  title="Follow Passion Car on Instagram"
-                >
-                  <InstagramIcon size={18} color="#ffffff" />
-                  <span>Follow on Instagram</span>
-                </a>
+                <div className="brand-action-row" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <a
+                    href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="brand-action-btn brand-btn-instagram"
+                    title="Follow Passion Car on Instagram"
+                  >
+                    <InstagramIcon size={18} color="#ffffff" />
+                    <span>Follow on Instagram</span>
+                  </a>
 
-                <a
-                  href="https://www.youtube.com/@passioncars_madhapur"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "12px 24px",
-                    borderRadius: "var(--radius-full)",
-                    background: "#FF0000",
-                    color: "#ffffff",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(255, 0, 0, 0.35)",
-                  }}
-                  title="Subscribe to Passion Car YouTube Channel"
-                >
-                  <YoutubeIcon size={18} color="#ffffff" />
-                  <span>Watch on YouTube</span>
-                </a>
+                  <a
+                    href="https://www.youtube.com/@passioncars_madhapur"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="brand-action-btn brand-btn-youtube"
+                    title="Subscribe to Passion Car YouTube Channel"
+                  >
+                    <YoutubeIcon size={18} color="#ffffff" />
+                    <span>Watch on YouTube</span>
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -4478,13 +4718,25 @@ function CustomerSignInModal({
   onGoToAdmin?: () => void;
   onSuccessLogin: (user: { id: string; name: string; phone: string; email: string; photo: string }) => void;
 }) {
+  const [authTab, setAuthTab] = useState<"google" | "password" | "reset">("google");
   const [googleEmail, setGoogleEmail] = useState("");
   const [googleName, setGoogleName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const googleLogin = useCustomerGoogleLogin();
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
 
+  const [resetIdentifier, setResetIdentifier] = useState("");
+  const [resetNewPass, setResetNewPass] = useState("");
+  const [resetConfirmPass, setResetConfirmPass] = useState("");
+  const [showResetPass, setShowResetPass] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccessMsg, setResetSuccessMsg] = useState("");
+
+  const googleLogin = useCustomerGoogleLogin();
   const [gsiReady, setGsiReady] = useState(false);
 
   useEffect(() => {
@@ -4532,7 +4784,6 @@ function CustomerSignInModal({
                     }
                   }
                 } catch (decodeErr) {
-                  console.error("Failed to parse Google credential", decodeErr);
                   setErrorMsg("Could not process Google account details. Please enter your email below.");
                 }
               }
@@ -4615,9 +4866,84 @@ function CustomerSignInModal({
     );
   };
 
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    if (!loginIdentifier.trim() || !loginPassword.trim()) {
+      setErrorMsg("Please enter both your email/mobile and password.");
+      return;
+    }
+    setLoginLoading(true);
+    try {
+      const res = await fetch("/api/customer/login-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: loginIdentifier.trim(),
+          password: loginPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed.");
+      }
+      setSuccess(true);
+      onSuccessLogin(data.customer);
+      setTimeout(() => onClose(), 1000);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Login failed.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setResetSuccessMsg("");
+    if (!resetIdentifier.trim()) {
+      setErrorMsg("Please enter your registered email or mobile number.");
+      return;
+    }
+    if (!resetNewPass || resetNewPass.length < 6) {
+      setErrorMsg("New password must be at least 6 characters long.");
+      return;
+    }
+    if (resetNewPass !== resetConfirmPass) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/customer/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: resetIdentifier.trim(),
+          newPassword: resetNewPass,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Password reset failed.");
+      }
+      setResetSuccessMsg("Password reset successfully! You can now log in with your new password.");
+      setResetNewPass("");
+      setResetConfirmPass("");
+      setTimeout(() => {
+        setAuthTab("password");
+        setLoginIdentifier(resetIdentifier);
+      }, 1800);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Password reset failed.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
@@ -4632,12 +4958,14 @@ function CustomerSignInModal({
                 justifyContent: "center",
               }}
             >
-              <GoogleLogo size={20} />
+              {authTab === "google" ? <GoogleLogo size={20} /> : <User size={18} className="text-red-500" />}
             </div>
             <div>
-              <h3 style={{ color: "var(--text-main)", margin: 0, fontSize: 18 }}>Sign in with Google</h3>
+              <h3 style={{ color: "var(--text-main)", margin: 0, fontSize: 18 }}>
+                {authTab === "google" ? "Sign in with Google" : authTab === "password" ? "Customer Password Login" : "Reset Account Password"}
+              </h3>
               <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                Google OAuth Customer Portal
+                Passion Car Customer Portal
               </span>
             </div>
           </div>
@@ -4646,12 +4974,48 @@ function CustomerSignInModal({
           </button>
         </div>
 
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, padding: "14px 20px 0" }}>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab("google");
+              setErrorMsg("");
+            }}
+            className={`auth-tab-btn ${authTab === "google" ? "active" : ""}`}
+            style={{ padding: "8px 6px", fontSize: 11, justifyContent: "center" }}
+          >
+            <span>Google Login</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab("password");
+              setErrorMsg("");
+            }}
+            className={`auth-tab-btn ${authTab === "password" ? "active" : ""}`}
+            style={{ padding: "8px 6px", fontSize: 11, justifyContent: "center" }}
+          >
+            <span>Password Sign In</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthTab("reset");
+              setErrorMsg("");
+            }}
+            className={`auth-tab-btn ${authTab === "reset" ? "active" : ""}`}
+            style={{ padding: "8px 6px", fontSize: 11, justifyContent: "center" }}
+          >
+            <span>Reset Password</span>
+          </button>
+        </div>
+
         <div style={{ padding: 24 }}>
           {success ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <CheckCircle2 size={48} className="text-emerald-500" style={{ margin: "0 auto 12px" }} />
-              <h4 style={{ color: "var(--text-main)", fontSize: 18 }}>Welcome Back!</h4>
-              <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>Signed in with Google OAuth successfully.</p>
+              <h4 style={{ color: "var(--text-main)", fontSize: 18 }}>Welcome to Passion Car!</h4>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>Signed in successfully.</p>
             </div>
           ) : (
             <div>
@@ -4671,93 +5035,268 @@ function CustomerSignInModal({
                 </div>
               )}
 
-              
-              <div id="google-gsi-btn-container" style={{ display: "flex", justifyContent: "center", minHeight: 44, marginBottom: 14 }} />
-
-              {!gsiReady && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (googleEmail.trim()) {
-                      handleGoogleSubmit({ preventDefault: () => {} } as any);
-                    } else {
-                      handleQuickGoogleSignIn();
-                    }
-                  }}
-                  disabled={googleLogin.isPending}
+              {resetSuccessMsg && (
+                <div
                   style={{
-                    width: "100%",
+                    background: "rgba(16, 185, 129, 0.15)",
+                    border: "1px solid #10b981",
+                    color: "#10b981",
+                    borderRadius: 6,
+                    padding: "8px 12px",
+                    fontSize: 13,
+                    marginBottom: 16,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    gap: 12,
-                    padding: "13px 18px",
-                    borderRadius: 8,
-                    background: "#ffffff",
-                    color: "#3c4043",
-                    border: "1px solid #dadce0",
-                    fontSize: 15,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-                    marginBottom: 18,
+                    gap: 8,
                   }}
                 >
-                  <GoogleLogo size={20} />
-                  <span>{googleLogin.isPending ? "Connecting with Google..." : "Continue with Google"}</span>
-                </button>
+                  <CheckCircle2 size={16} />
+                  <span>{resetSuccessMsg}</span>
+                </div>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  margin: "18px 0",
-                  color: "var(--text-muted)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: 0.5,
-                }}
-              >
-                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-                <span style={{ padding: "0 10px", textTransform: "uppercase" }}>Or Enter Google Account Email</span>
-                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-              </div>
+              {authTab === "google" && (
+                <div>
+                  <div id="google-gsi-btn-container" style={{ display: "flex", justifyContent: "center", minHeight: 44, marginBottom: 14 }} />
 
-              <form onSubmit={handleGoogleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <div className="form-group">
-                  <label className="form-label">Google Account Email *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="yourname@gmail.com"
-                    className="form-input"
-                    value={googleEmail}
-                    onChange={(e) => setGoogleEmail(e.target.value)}
-                  />
+                  {!gsiReady && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (googleEmail.trim()) {
+                          handleGoogleSubmit({ preventDefault: () => {} } as any);
+                        } else {
+                          handleQuickGoogleSignIn();
+                        }
+                      }}
+                      disabled={googleLogin.isPending}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 12,
+                        padding: "13px 18px",
+                        borderRadius: 8,
+                        background: "#ffffff",
+                        color: "#3c4043",
+                        border: "1px solid #dadce0",
+                        fontSize: 15,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+                        marginBottom: 18,
+                      }}
+                    >
+                      <GoogleLogo size={20} />
+                      <span>{googleLogin.isPending ? "Connecting with Google..." : "Continue with Google"}</span>
+                    </button>
+                  )}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      margin: "18px 0",
+                      color: "var(--text-muted)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                    <span style={{ padding: "0 10px", textTransform: "uppercase" }}>Or Enter Google Account Email</span>
+                    <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                  </div>
+
+                  <form onSubmit={handleGoogleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Google Account Email *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="yourname@gmail.com"
+                        className="form-input"
+                        value={googleEmail}
+                        onChange={(e) => setGoogleEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Display Name (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="Your Name"
+                        className="form-input"
+                        value={googleName}
+                        onChange={(e) => setGoogleName(e.target.value)}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={googleLogin.isPending}
+                      className="btn btn-primary"
+                      style={{ width: "100%", justifyContent: "center", gap: 8 }}
+                    >
+                      <GoogleLogo size={16} />
+                      <span>{googleLogin.isPending ? "Connecting..." : "Sign In with Google"}</span>
+                    </button>
+                  </form>
                 </div>
+              )}
 
-                <div className="form-group">
-                  <label className="form-label">Display Name (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="Your Name"
-                    className="form-input"
-                    value={googleName}
-                    onChange={(e) => setGoogleName(e.target.value)}
-                  />
-                </div>
+              {authTab === "password" && (
+                <form onSubmit={handlePasswordLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Mobile Number or Email Address *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 9849012345 or user@example.com"
+                      className="form-input"
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={googleLogin.isPending}
-                  className="btn btn-primary"
-                  style={{ width: "100%", justifyContent: "center", gap: 8 }}
-                >
-                  <GoogleLogo size={16} />
-                  <span>{googleLogin.isPending ? "Connecting..." : "Sign In with Google"}</span>
-                </button>
-              </form>
+                  <div className="form-group">
+                    <label className="form-label">Password *</label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showLoginPassword ? "text" : "password"}
+                        required
+                        placeholder="Enter your account password"
+                        className="form-input"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        style={{ paddingRight: 40 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          padding: 0,
+                        }}
+                      >
+                        {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loginLoading}
+                    className="btn btn-primary"
+                    style={{ width: "100%", justifyContent: "center", gap: 8, marginTop: 4 }}
+                  >
+                    <User size={16} />
+                    <span>{loginLoading ? "Signing in..." : "Sign In with Password"}</span>
+                  </button>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthTab("reset");
+                        setResetIdentifier(loginIdentifier);
+                        setErrorMsg("");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--primary)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        padding: 0,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {authTab === "reset" && (
+                <form onSubmit={handleResetSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Registered Mobile Number or Email *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 9849012345 or user@example.com"
+                      className="form-input"
+                      value={resetIdentifier}
+                      onChange={(e) => setResetIdentifier(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">New Password (Min 6 Characters) *</label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showResetPass ? "text" : "password"}
+                        required
+                        minLength={6}
+                        placeholder="Enter new password"
+                        className="form-input"
+                        value={resetNewPass}
+                        onChange={(e) => setResetNewPass(e.target.value)}
+                        style={{ paddingRight: 40 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResetPass(!showResetPass)}
+                        style={{
+                          position: "absolute",
+                          right: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          padding: 0,
+                        }}
+                      >
+                        {showResetPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Confirm New Password *</label>
+                    <input
+                      type={showResetPass ? "text" : "password"}
+                      required
+                      minLength={6}
+                      placeholder="Confirm new password"
+                      className="form-input"
+                      value={resetConfirmPass}
+                      onChange={(e) => setResetConfirmPass(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="btn btn-primary"
+                    style={{ width: "100%", justifyContent: "center", gap: 8, marginTop: 4 }}
+                  >
+                    <Key size={16} />
+                    <span>{resetLoading ? "Updating Password..." : "Reset & Save Password"}</span>
+                  </button>
+                </form>
+              )}
 
               <div
                 style={{
@@ -4771,7 +5310,7 @@ function CustomerSignInModal({
                 }}
               >
                 <ShieldCheck size={14} color="#10b981" />
-                <span>Secure OAuth 2.0 Google Identity</span>
+                <span>Encrypted Customer Identity & Security</span>
               </div>
 
               {onGoToAdmin && (
@@ -4818,13 +5357,20 @@ function CustomerProfileModal({
   onUpdateUser: (u: { id: string; name: string; phone: string; email: string; photo: string }) => void;
   onLogout: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<"profile" | "activity">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "password" | "activity">("profile");
   const [name, setName] = useState(user.name);
   const [phone, setPhone] = useState(user.phone);
   const [email, setEmail] = useState(user.email || "");
   const [photo, setPhoto] = useState(user.photo || "");
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [whatsappAlerts, setWhatsappAlerts] = useState(() => {
     try {
@@ -4867,6 +5413,43 @@ function CustomerProfileModal({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMsg("");
+    setPasswordError("");
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const res = await fetch("/api/customer/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: email || phone || user.email || user.phone,
+          newPassword,
+          userId: user.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Password update failed.");
+      }
+      setPasswordMsg("Account password updated successfully!");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : "Password update failed.");
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -4962,22 +5545,30 @@ function CustomerProfileModal({
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "14px 20px 0" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, padding: "14px 20px 0" }}>
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
             className={`auth-tab-btn ${activeTab === "profile" ? "active" : ""}`}
-            style={{ padding: "8px 12px", fontSize: 12 }}
+            style={{ padding: "8px 8px", fontSize: 11, justifyContent: "center" }}
           >
-            <span>User Settings & Profile</span>
+            <span>Profile & Settings</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("password")}
+            className={`auth-tab-btn ${activeTab === "password" ? "active" : ""}`}
+            style={{ padding: "8px 8px", fontSize: 11, justifyContent: "center" }}
+          >
+            <span>Password Reset</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("activity")}
             className={`auth-tab-btn ${activeTab === "activity" ? "active" : ""}`}
-            style={{ padding: "8px 12px", fontSize: 12 }}
+            style={{ padding: "8px 8px", fontSize: 11, justifyContent: "center" }}
           >
-            <span>My Bookings & Inquiries</span>
+            <span>My Bookings</span>
           </button>
         </div>
 
@@ -5204,6 +5795,135 @@ function CustomerProfileModal({
                 <span>Sign Out</span>
               </button>
             </div>
+          </form>
+        ) : activeTab === "password" ? (
+          <form onSubmit={handleResetPassword} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            {passwordMsg && (
+              <div
+                style={{
+                  background: "rgba(16, 185, 129, 0.15)",
+                  border: "1px solid #10b981",
+                  color: "#10b981",
+                  padding: "10px 14px",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <CheckCircle2 size={16} />
+                <span>{passwordMsg}</span>
+              </div>
+            )}
+
+            {passwordError && (
+              <div
+                style={{
+                  background: "rgba(239, 68, 68, 0.15)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  color: "#fca5a5",
+                  padding: "10px 14px",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {passwordError}
+              </div>
+            )}
+
+            <div
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                padding: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  background: "rgba(239, 68, 68, 0.15)",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Key size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-main)" }}>
+                  Account Password & Security
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Account Identifier: {email || phone || user.email || user.phone}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">New Password (Min 6 Characters) *</label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  className="form-input"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter strong new password"
+                  style={{ paddingRight: 40 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    padding: 0,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Confirm New Password *</label>
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={6}
+                className="form-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-type new password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={passwordLoading}
+              className="btn btn-primary"
+              style={{ width: "100%", justifyContent: "center", gap: 8, marginTop: 4 }}
+            >
+              <Key size={15} />
+              <span>{passwordLoading ? "Updating Password..." : "Update Password"}</span>
+            </button>
           </form>
         ) : (
           <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
