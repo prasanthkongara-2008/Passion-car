@@ -1989,23 +1989,23 @@ function PublicView({
                   href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="footer-social-btn instagram"
+                  className="btn btn-outline"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "8px 18px",
+                    padding: "10px 22px",
                     borderRadius: "var(--radius-full)",
-                    border: "1px solid rgba(225, 48, 108, 0.4)",
-                    background: "rgba(225, 48, 108, 0.1)",
+                    borderColor: "rgba(225, 48, 108, 0.5)",
+                    background: "rgba(225, 48, 108, 0.12)",
                     color: "var(--text-main)",
                     fontWeight: 600,
-                    fontSize: 13,
+                    fontSize: 14,
                     textDecoration: "none",
                   }}
                   title="Follow Passion Car on Instagram"
                 >
-                  <InstagramIcon size={18} />
+                  <InstagramIcon size={18} color="#E1306C" />
                   <span>Instagram</span>
                 </a>
 
@@ -2013,23 +2013,23 @@ function PublicView({
                   href="https://www.youtube.com/@passioncars_madhapur"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="footer-social-btn youtube"
+                  className="btn btn-outline"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "8px 18px",
+                    padding: "10px 22px",
                     borderRadius: "var(--radius-full)",
-                    border: "1px solid rgba(255, 0, 0, 0.4)",
-                    background: "rgba(255, 0, 0, 0.1)",
+                    borderColor: "rgba(255, 0, 0, 0.5)",
+                    background: "rgba(255, 0, 0, 0.12)",
                     color: "var(--text-main)",
                     fontWeight: 600,
-                    fontSize: 13,
+                    fontSize: 14,
                     textDecoration: "none",
                   }}
                   title="Subscribe to Passion Car YouTube Channel"
                 >
-                  <YoutubeIcon size={18} />
+                  <YoutubeIcon size={18} color="#FF0000" />
                   <span>YouTube</span>
                 </a>
               </div>
@@ -2164,11 +2164,10 @@ function PublicView({
       {selectedVehicleId && (
         <VehicleDetailModal
           id={selectedVehicleId}
+          customerUser={customerUser}
           onClose={handleCloseCar}
-          onBookThisCar={(title) => {
-            handleCloseCar();
-            handleOpenInquiry({ type: "buy", vehicleId: selectedVehicleId, vehicleTitle: title });
-          }}
+          onOpenBookings={handleOpenBookings}
+          onBookThisCar={() => {}}
         />
       )}
 
@@ -2296,57 +2295,31 @@ function PublicView({
           className="desktop-floating-whatsapp"
           title="Chat with Passion Car on WhatsApp"
         >
-          <MessageSquare size={20} fill="#ffffff" color="#ffffff" />
+          <MessageSquare size={18} fill="#ffffff" color="#ffffff" />
           <span>Chat on WhatsApp</span>
         </a>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <a
-            href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: "var(--radius-full)",
-              background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
-              color: "#ffffff",
-              fontSize: 12,
-              fontWeight: 700,
-              textDecoration: "none",
-              boxShadow: "0 6px 16px rgba(220, 39, 67, 0.35)",
-            }}
-            title="Follow Passion Car on Instagram"
-          >
-            <InstagramIcon size={15} color="#ffffff" />
-            <span>Instagram</span>
-          </a>
+        <a
+          href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="desktop-floating-instagram"
+          title="Follow Passion Car on Instagram"
+        >
+          <InstagramIcon size={18} color="#ffffff" />
+          <span>Follow on Instagram</span>
+        </a>
 
-          <a
-            href="https://www.youtube.com/@passioncars_madhapur"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: "var(--radius-full)",
-              background: "#FF0000",
-              color: "#ffffff",
-              fontSize: 12,
-              fontWeight: 700,
-              textDecoration: "none",
-              boxShadow: "0 6px 16px rgba(255, 0, 0, 0.35)",
-            }}
-            title="Subscribe to Passion Car YouTube Channel"
-          >
-            <YoutubeIcon size={15} color="#ffffff" />
-            <span>YouTube</span>
-          </a>
-        </div>
+        <a
+          href="https://www.youtube.com/@passioncars_madhapur"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="desktop-floating-youtube"
+          title="Watch Passion Car on YouTube"
+        >
+          <YoutubeIcon size={18} color="#ffffff" />
+          <span>Watch on YouTube</span>
+        </a>
       </div>
 
       {reviewModalOpen && (
@@ -5933,16 +5906,44 @@ function CarCard({
 
 function VehicleDetailModal({
   id,
+  customerUser,
   onClose,
+  onOpenBookings,
   onBookThisCar,
 }: {
   id: number;
+  customerUser?: { id: string; name: string; phone: string; email: string; photo: string } | null;
   onClose: () => void;
-  onBookThisCar: (title: string) => void;
+  onOpenBookings?: (phone: string) => void;
+  onBookThisCar?: (title: string) => void;
 }) {
   const { data: vehicle, isLoading } = useVehicle(id);
   const { data: settings } = useSiteSettings();
+  const createInquiry = useCreateInquiry();
   const [activeTab, setActiveTab] = useState<"specs" | "emi" | "features">("specs");
+
+  const [bookingActive, setBookingActive] = useState(false);
+  const [bookingName, setBookingName] = useState(() => customerUser?.name || "");
+  const [bookingPhone, setBookingPhone] = useState(() => customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""));
+  const [bookingEmail, setBookingEmail] = useState(() => customerUser?.email || "");
+  const [bookingNotes, setBookingNotes] = useState("");
+  const [bookingAlertData, setBookingAlertData] = useState<{
+    token: string;
+    name: string;
+    phone: string;
+    email?: string;
+    notes?: string;
+    time: string;
+  } | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
+  useEffect(() => {
+    if (customerUser) {
+      if (customerUser.name && !bookingName) setBookingName(customerUser.name);
+      if (customerUser.phone && !bookingPhone) setBookingPhone(customerUser.phone);
+      if (customerUser.email && !bookingEmail) setBookingEmail(customerUser.email);
+    }
+  }, [customerUser]);
 
   const [downPercent, setDownPercent] = useState(20);
   const [interestRate, setInterestRate] = useState(9.5);
@@ -6013,6 +6014,52 @@ function VehicleDetailModal({
   const totalInterest = Math.max(0, totalPayable - loanAmount);
 
   const title = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.variant}`;
+
+  const handleBookingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = cleanMobileNumber(bookingPhone);
+    if (!bookingName.trim()) {
+      alert("Please enter your name.");
+      return;
+    }
+    if (cleanPhone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    const token = `PCB-BOOK-${vehicle.id}-${Date.now().toString().slice(-4)}`;
+    const fullMsg = `[OFFICIAL VEHICLE BOOKING] Vehicle: ${title} | Price: ${formatInr(price)} | Booking ID: ${token}${bookingNotes.trim() ? ` | Notes: ${bookingNotes.trim()}` : ""}`;
+
+    createInquiry.mutate(
+      {
+        type: "buy",
+        name: bookingName.trim(),
+        phone: cleanPhone,
+        email: bookingEmail.trim() || undefined,
+        message: fullMsg,
+        vehicleId: vehicle.id,
+      },
+      {
+        onSuccess: () => {
+          try {
+            localStorage.setItem("passioncar_last_phone", cleanPhone);
+          } catch {}
+
+          setBookingAlertData({
+            token,
+            name: bookingName.trim(),
+            phone: cleanPhone,
+            email: bookingEmail.trim() || undefined,
+            notes: bookingNotes.trim(),
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          });
+        },
+        onError: (err: any) => {
+          alert(err?.message || "Failed to submit booking. Please try again or WhatsApp us at +91 88858 58380.");
+        },
+      }
+    );
+  };
 
   const isCity = /city/i.test(vehicle.model);
   const isJazz = /jazz/i.test(vehicle.model);
@@ -6275,7 +6322,13 @@ function VehicleDetailModal({
                 <span>WhatsApp Query</span>
               </a>
 
-              <button onClick={() => onBookThisCar(title)} className="btn btn-primary">
+              <button
+                onClick={() => {
+                  setBookingActive(true);
+                  if (onBookThisCar) onBookThisCar(title);
+                }}
+                className="btn btn-primary"
+              >
                 <span>Book This Vehicle</span>
                 <ArrowRight size={16} />
               </button>
@@ -6439,7 +6492,10 @@ function VehicleDetailModal({
                 </div>
 
                 <button
-                  onClick={() => onBookThisCar(title)}
+                  onClick={() => {
+                    setBookingActive(true);
+                    if (onBookThisCar) onBookThisCar(title);
+                  }}
                   className="btn btn-primary btn-sm"
                   style={{ marginTop: 20 }}
                 >
@@ -6723,6 +6779,382 @@ function VehicleDetailModal({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {bookingActive && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.8)",
+            backdropFilter: "blur(6px)",
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "clamp(12px, 3vw, 24px)",
+          }}
+          onClick={() => {
+            if (!createInquiry.isPending) {
+              setBookingActive(false);
+              setBookingAlertData(null);
+            }
+          }}
+        >
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: 540,
+              width: "100%",
+              maxHeight: "92vh",
+              overflowY: "auto",
+              position: "relative",
+              border: "1px solid var(--border)",
+              boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div>
+                <div className="badge badge-red" style={{ marginBottom: 4 }}>
+                  <span>Verified Dealership Booking</span>
+                </div>
+                <h3 style={{ fontSize: 20, color: "var(--text-main)", margin: 0 }}>
+                  {bookingAlertData ? "Booking Confirmed" : "Book This Vehicle"}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setBookingActive(false);
+                  setBookingAlertData(null);
+                }}
+                className="modal-close-btn"
+                type="button"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: "clamp(16px, 4vw, 28px)" }}>
+              {bookingAlertData ? (
+                <div>
+                  <div
+                    style={{
+                      background: "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)",
+                      border: "1px solid rgba(16, 185, 129, 0.4)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "20px",
+                      marginBottom: 20,
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: "50%",
+                        background: "#10b981",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        margin: "0 auto 14px",
+                        boxShadow: "0 8px 20px rgba(16, 185, 129, 0.4)",
+                      }}
+                    >
+                      <Check size={32} />
+                    </div>
+                    <h3 style={{ color: "var(--text-main)", fontSize: 20, marginBottom: 6 }}>
+                      Vehicle Booking Registered!
+                    </h3>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        background: "rgba(16, 185, 129, 0.2)",
+                        color: "#10b981",
+                        padding: "6px 14px",
+                        borderRadius: "var(--radius-full)",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Smartphone size={15} />
+                      <span>Alert Submitted to Dealership Mobile: +91 88858 58380</span>
+                    </div>
+                    <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
+                      Thank you, <strong style={{ color: "var(--text-main)" }}>{bookingAlertData.name}</strong>. All details have been submitted to mobile number <strong style={{ color: "var(--text-main)" }}>+91 {bookingAlertData.phone}</strong> and Dealership Alert Desk at <strong style={{ color: "var(--text-main)" }}>+91 88858 58380</strong>.
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: 16,
+                      marginBottom: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
+                      <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Booking Reference ID</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <code style={{ color: "var(--primary)", fontWeight: 700, fontSize: 13, background: "rgba(239, 68, 68, 0.1)", padding: "2px 8px", borderRadius: 4 }}>
+                          {bookingAlertData.token}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof navigator !== "undefined" && navigator.clipboard) {
+                              navigator.clipboard.writeText(bookingAlertData.token);
+                              setTokenCopied(true);
+                              setTimeout(() => setTokenCopied(false), 2000);
+                            }
+                          }}
+                          className="btn btn-glass btn-sm"
+                          style={{ padding: "3px 8px", fontSize: 11 }}
+                          title="Copy Booking ID"
+                        >
+                          {tokenCopied ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                          <span>{tokenCopied ? "Copied" : "Copy"}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--text-muted)" }}>Vehicle</span>
+                      <strong style={{ color: "var(--text-main)" }}>{title}</strong>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--text-muted)" }}>Fixed Price</span>
+                      <strong style={{ color: "var(--text-main)" }}>{formatInr(price)}</strong>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--text-muted)" }}>Customer Mobile</span>
+                      <strong style={{ color: "var(--text-main)" }}>+91 {bookingAlertData.phone}</strong>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--text-muted)" }}>Showroom Alert Mobile</span>
+                      <strong style={{ color: "#10b981" }}>+91 88858 58380</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const waText = `*PASSION CAR OFFICIAL BOOKING ALERT*\n` +
+                          `🎫 *Booking ID:* ${bookingAlertData.token}\n` +
+                          `🚗 *Vehicle:* ${title}\n` +
+                          `💰 *Price:* ${formatInr(price)}\n` +
+                          `👤 *Customer Name:* ${bookingAlertData.name}\n` +
+                          `📞 *Customer Mobile:* +91 ${bookingAlertData.phone}\n` +
+                          (bookingAlertData.notes ? `📝 *Notes:* ${bookingAlertData.notes}\n` : "") +
+                          `📍 *Showroom:* Passion Car, Madhapur, Hyderabad\n` +
+                          `📞 *Dealership Mobile:* +91 88858 58380\n` +
+                          `✅ *Status:* Vehicle Booking Alert Submitted!`;
+                        safeOpenWhatsApp(waText, "918885858380");
+                      }}
+                      className="btn"
+                      style={{
+                        background: "#25d366",
+                        color: "#ffffff",
+                        fontWeight: 700,
+                        justifyContent: "center",
+                        padding: "12px 20px",
+                        boxShadow: "0 6px 18px rgba(37, 211, 102, 0.4)",
+                      }}
+                    >
+                      <MessageSquare size={18} fill="#ffffff" color="#ffffff" />
+                      <span>Send Booking Alert on WhatsApp to +91 88858 58380</span>
+                    </button>
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBookingActive(false);
+                          setBookingAlertData(null);
+                          onClose();
+                          if (onOpenBookings) {
+                            onOpenBookings(bookingAlertData.phone);
+                          } else {
+                            window.location.hash = "#bookings";
+                          }
+                        }}
+                        className="btn btn-primary"
+                        style={{ flex: 1, minWidth: 150, justifyContent: "center" }}
+                      >
+                        <Ticket size={16} />
+                        <span>View in My Bookings</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBookingActive(false);
+                          setBookingAlertData(null);
+                        }}
+                        className="btn btn-glass"
+                        style={{ flex: 1, minWidth: 100, justifyContent: "center" }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleBookingSubmit}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: 12,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 72,
+                        height: 52,
+                        borderRadius: 6,
+                        overflow: "hidden",
+                        background: "#0b0f17",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <img
+                        src={carImages[0]}
+                        alt={title}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {title}
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--primary)", fontWeight: 700 }}>
+                        {formatInr(price)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "rgba(239, 68, 68, 0.08)",
+                      border: "1px solid rgba(239, 68, 68, 0.2)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: "10px 14px",
+                      marginBottom: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <Smartphone size={18} className="text-red-500" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                      Booking alert will be registered in your account and submitted directly to Dealership Mobile <strong style={{ color: "var(--text-main)" }}>+91 88858 58380</strong>.
+                    </span>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="form-label" style={{ fontSize: 13 }}>Full Name *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Enter your full name"
+                      value={bookingName}
+                      onChange={(e) => setBookingName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="form-label" style={{ fontSize: 13 }}>Mobile Number (10 Digits) *</label>
+                    <div style={{ position: "relative" }}>
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "var(--text-muted)",
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        className="form-input"
+                        style={{ paddingLeft: 48 }}
+                        placeholder="88858 58380"
+                        maxLength={10}
+                        value={bookingPhone}
+                        onChange={(e) => setBookingPhone(cleanMobileNumber(e.target.value))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="form-label" style={{ fontSize: 13 }}>Email Address (Optional)</label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="you@example.com"
+                      value={bookingEmail}
+                      onChange={(e) => setBookingEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 20 }}>
+                    <label className="form-label" style={{ fontSize: 13 }}>Preferred Visit Time / Booking Notes (Optional)</label>
+                    <textarea
+                      className="form-input"
+                      rows={2}
+                      placeholder="e.g. Schedule test drive on Saturday, request doorstep delivery, or apply for finance"
+                      value={bookingNotes}
+                      onChange={(e) => setBookingNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={createInquiry.isPending}
+                    className="btn btn-primary"
+                    style={{ width: "100%", justifyContent: "center", padding: "12px 20px" }}
+                  >
+                    {createInquiry.isPending ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Submitting Booking Alert...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Submit Booking to Dealership (+91 88858 58380)</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
