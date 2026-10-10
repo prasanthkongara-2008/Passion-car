@@ -1004,7 +1004,7 @@ function PublicView({
             <div className="mobile-drawer-header">
               <div className="brand-logo">
                 <div className="brand-logo-badge">
-                  <img src="/images/logo.png" alt="Passion Car Logo" style={{ height: 38 }} />
+                  <img src="/images/logo.png" alt="Passion Car Logo" className="brand-logo-img" />
                 </div>
                 <div className="brand-name">
                   <span style={{ fontSize: 16, fontWeight: 800 }}>PASSION CAR</span>

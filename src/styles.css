@@ -186,8 +186,8 @@ body.light-theme .text-gradient {
   overflow: hidden;
   transition: all 0.25s ease;
   aspect-ratio: 1 / 1;
-  width: 44px;
-  height: 44px;
+  width: 58px;
+  height: 58px;
   flex-shrink: 0;
 }
 
@@ -2001,8 +2001,8 @@ body.light-theme .hero-slide-img {
 
   .brand-logo-badge {
     padding: 1px !important;
-    width: 38px !important;
-    height: 38px !important;
+    width: 48px !important;
+    height: 48px !important;
     border-radius: 50% !important;
   }
 
