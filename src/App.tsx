@@ -242,7 +242,66 @@ function PublicView({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [filters, setFilters] = useState<VehicleFilters>({ sort: "recommended" });
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const match = window.location.pathname.match(/^\/car\/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    const hashMatch = window.location.hash.match(/^#car-(\d+)/);
+    if (hashMatch) return parseInt(hashMatch[1], 10);
+    return null;
+  });
+
+  const handleOpenCar = (id: number) => {
+    setSelectedVehicleId(id);
+    const targetPath = `/car/${id}`;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ modal: "car", carId: id }, "", targetPath);
+    }
+  };
+
+  const handleCloseCar = () => {
+    setSelectedVehicleId(null);
+    if (window.location.pathname.startsWith("/car/")) {
+      if (window.history.state?.modal === "car") {
+        window.history.back();
+      } else {
+        window.history.pushState({}, "", "/#inventory");
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const match = window.location.pathname.match(/^\/car\/(\d+)/);
+      if (match) {
+        setSelectedVehicleId(parseInt(match[1], 10));
+      } else {
+        const hashMatch = window.location.hash.match(/^#car-(\d+)/);
+        if (hashMatch) {
+          setSelectedVehicleId(parseInt(hashMatch[1], 10));
+        } else {
+          setSelectedVehicleId(null);
+        }
+      }
+
+      if (!e.state || e.state.modal !== "inquiry") {
+        setInquiryModal((prev) => (prev.open ? { ...prev, open: false } : prev));
+      }
+      if (!e.state || e.state.modal !== "service") {
+        setServiceModalOpen(false);
+      }
+      if (!e.state || e.state.modal !== "menu") {
+        setMobileMenuOpen(false);
+      }
+      if (!e.state || e.state.modal !== "lightbox") {
+        setLightboxImg(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const [inquiryModal, setInquiryModal] = useState<{
     open: boolean;
     type: "buy" | "sell" | "contact" | "exchange" | "test_drive";
@@ -292,7 +351,12 @@ function PublicView({
   const { data: vehicles = [], isLoading: loadingVehicles } = useVehicles(filters);
   const { data: settings } = useSiteSettings();
   const { data: googleRating } = useGoogleRating();
-  const { data: galleryItems = [] } = useGallery(activeGalleryCat);
+  const { data: rawGalleryItems = [] } = useGallery(activeGalleryCat);
+  const galleryItems = useMemo(() => {
+    return rawGalleryItems.filter(
+      (item) => item.category !== "Facilities" && item.category !== "Facilities & Inspection"
+    );
+  }, [rawGalleryItems]);
 
   const phone = settings?.phone || "+91 88858 58380";
   const rawPhone = phone.replace(/\D/g, "") || "918885858380";
@@ -1003,7 +1067,7 @@ function PublicView({
                 <CarCard
                   key={v.id}
                   vehicle={v}
-                  onViewDetails={() => setSelectedVehicleId(v.id)}
+                  onViewDetails={() => handleOpenCar(v.id)}
                   onInquire={() =>
                     setInquiryModal({
                       open: true,
@@ -1314,7 +1378,7 @@ function PublicView({
               Showroom & Delivery Gallery
             </h2>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Experience the luxury and celebration at Passion Car — from pristine inventory displays in Kavuri Hills, Madhapur to joyful ceremonial key handovers and certified inspection bays.
+              Experience the luxury and celebration at Passion Car — from pristine inventory displays in Kavuri Hills, Madhapur to joyful ceremonial key handovers.
             </p>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 24 }}>
@@ -1322,7 +1386,6 @@ function PublicView({
                 { id: "all", label: "All Photos" },
                 { id: "Showroom", label: "Showroom & Fleet" },
                 { id: "Customer Deliveries", label: "Customer Deliveries" },
-                { id: "Facilities", label: "Facilities & Inspection" },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -1566,9 +1629,9 @@ function PublicView({
       {selectedVehicleId && (
         <VehicleDetailModal
           id={selectedVehicleId}
-          onClose={() => setSelectedVehicleId(null)}
+          onClose={handleCloseCar}
           onBookThisCar={(title) => {
-            setSelectedVehicleId(null);
+            handleCloseCar();
             setInquiryModal({ open: true, type: "buy", vehicleId: selectedVehicleId, vehicleTitle: title });
           }}
         />
