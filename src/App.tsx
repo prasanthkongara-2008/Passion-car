@@ -177,6 +177,50 @@ function formatDateTime(dateStr?: string | Date | null): { date: string; time: s
   }
 }
 
+function compressImageFile(file: File, maxDimension = 1600, quality = 0.82): Promise<{ image: string; name: string }> {
+  return new Promise((resolve) => {
+    if (!file || !file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ image: (reader.result as string) || "", name: file?.name || "file" });
+      reader.onerror = () => resolve({ image: "", name: file?.name || "file" });
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => resolve({ image: "", name: file.name });
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => resolve({ image: (reader.result as string) || "", name: file.name });
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve({ image: (reader.result as string) || "", name: file.name });
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve({ image: dataUrl, name: file.name.replace(/\.[^/.]+$/, "") });
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function cleanMobileNumber(val: string): string {
   const digits = (val || "").replace(/\D/g, "");
   if (digits.length > 10 && digits.startsWith("91")) {
@@ -5398,21 +5442,17 @@ function CustomerProfileModal({
     email: user.email,
   });
 
-  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("Please select a valid image file.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        setPhoto(base64);
-      }
-    };
-    reader.readAsDataURL(file);
+    const compressed = await compressImageFile(file, 400, 0.85);
+    if (compressed.image) {
+      setPhoto(compressed.image);
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -10342,16 +10382,7 @@ function CarEditorModal({
     setIsUploading(true);
 
     try {
-      const readPromises = filesToUpload.map(
-        (file) =>
-          new Promise<{ image: string; name: string }>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve({ image: reader.result as string, name: file.name });
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          })
-      );
-
+      const readPromises = filesToUpload.map((file) => compressImageFile(file, 1600, 0.82));
       const base64List = await Promise.all(readPromises);
       const res = await uploadMultiple.mutateAsync({ images: base64List });
 
@@ -13383,45 +13414,29 @@ function AdminGalleryTab() {
 
     setIsUploadingPhoto(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        try {
-          const res = await uploadImage.mutateAsync({
-            image: base64,
-            name: file.name.replace(/\.[^/.]+$/, ""),
-          });
-          if (res?.url) {
-            setForm((prev) => ({
-              ...prev,
-              imageUrl: res.url,
-              title: prev.title || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
-            }));
-          } else {
-            setForm((prev) => ({
-              ...prev,
-              imageUrl: base64,
-              title: prev.title || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
-            }));
-          }
-        } catch {
-          setForm((prev) => ({
-            ...prev,
-            imageUrl: base64,
-            title: prev.title || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
-          }));
-        } finally {
-          setIsUploadingPhoto(false);
-        }
-      };
-      reader.onerror = () => {
-        alert("Could not read selected photo file.");
-        setIsUploadingPhoto(false);
-      };
-      reader.readAsDataURL(file);
+      const compressed = await compressImageFile(file, 1600, 0.82);
+      if (!compressed.image) throw new Error("Could not process photo file.");
+      try {
+        const res = await uploadImage.mutateAsync({
+          image: compressed.image,
+          name: file.name.replace(/\.[^/.]+$/, ""),
+        });
+        setForm((prev) => ({
+          ...prev,
+          imageUrl: res?.url || compressed.image,
+          title: prev.title || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
+        }));
+      } catch {
+        setForm((prev) => ({
+          ...prev,
+          imageUrl: compressed.image,
+          title: prev.title || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
+        }));
+      }
     } catch (err) {
       console.error("Upload error:", err);
       alert("Failed to upload photo from device.");
+    } finally {
       setIsUploadingPhoto(false);
     }
   };
