@@ -4,17 +4,17 @@
       "id": 1,
       "make": "Volkswagen",
       "model": "Polo",
-      "variant": "",
+      "variant": "TSI MT BSIV",
       "year": 2021,
-      "priceInr": 650001,
+      "priceInr": 650000,
       "bodyType": "Hatchback",
       "fuelType": "Petrol",
       "transmission": "Manual",
-      "kilometers": 0,
+      "kilometers": 25000,
       "owners": 1,
-      "color": "",
+      "color": "Flash Red",
       "city": "Hyderabad",
-      "engineType": "",
+      "engineType": "1.0L TSI 3-Cylinder Turbocharged Petrol Engine",
       "engineCapacityCc": 999,
       "engineLengthMm": 3971,
       "powerBhp": 109,
@@ -29,9 +29,24 @@
       "fuelEfficiency": "18.2 kmpl",
       "batteryCapacityKwh": null,
       "rangeKm": null,
-      "description": "",
-      "features": [],
-      "imageUrls": [],
+      "description": "This 2021 Volkswagen Polo TSI MT BSIV has passed our stringent 150-point inspection and comes with certified warranty coverage, verified single-owner history, zero meter tampering, and full after-sales support from Passion Car.",
+      "features": [
+        "Power Steering",
+        "Anti-lock Braking System (ABS)",
+        "Dual Airbags",
+        "Touchscreen Infotainment",
+        "Rear Camera",
+        "Portago Alloy Wheels",
+        "Climatronic Auto AC",
+        "Cruise Control",
+        "Cornering Fog Lamps"
+      ],
+      "imageUrls": [
+        "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80"
+      ],
       "status": "available",
       "createdAt": "2026-10-09T05:03:37.388Z",
       "updatedAt": "2026-10-09T18:13:36.820Z"
@@ -79,7 +94,7 @@
       "imageUrls": [
         "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
         "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
-        "/images/reviews/review-04.webp"
+        "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80"
       ],
       "status": "available",
       "createdAt": "2026-10-09T04:39:41.816Z",
@@ -126,7 +141,8 @@
       ],
       "imageUrls": [
         "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
-        "/images/reviews/review-05.webp"
+        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80"
       ],
       "status": "available",
       "createdAt": "2026-10-09T04:39:41.816Z",

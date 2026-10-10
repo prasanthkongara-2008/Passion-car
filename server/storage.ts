@@ -923,6 +923,36 @@ const INITIAL_SERVICE_BOOKINGS: ServiceBooking[] = [
   },
 ];
 
+export function sanitizeVehicleImages(v: Vehicle): Vehicle {
+  const deliveryRegex = /\/images\/(reviews\/|hero-delivery)/i;
+  const filtered = (v.imageUrls || []).filter((url) => !deliveryRegex.test(url));
+  if (filtered.length > 0) {
+    return { ...v, imageUrls: filtered };
+  }
+  const isCity = /city/i.test(v.model);
+  const isJazz = /jazz/i.test(v.model);
+  let defaultPhotos: string[] = [
+    "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
+  ];
+  if (isCity) {
+    defaultPhotos = [
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+    ];
+  } else if (isJazz) {
+    defaultPhotos = [
+      "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
+    ];
+  }
+  return { ...v, imageUrls: defaultPhotos };
+}
+
 export class JsonStorage implements IStorage {
   private data: DataStore;
 
