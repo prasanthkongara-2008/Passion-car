@@ -3036,7 +3036,7 @@ function CustomerSignInModal({
   const [gsiReady, setGsiReady] = useState(false);
 
   useEffect(() => {
-    const clientId = "236049845526-6pall4lrjfqbs0ga6t3j9ns4sjg9t9iv.apps.googleusercontent.com";
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "236049845526-6pall4lrjfqbs0ga6t3j9ns4sjg9t9iv.apps.googleusercontent.com";
 
     const initGsi = () => {
       const google = (window as any).google;
@@ -4870,7 +4870,7 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
   }, []);
 
   useEffect(() => {
-    const clientId = "236049845526-6pall4lrjfqbs0ga6t3j9ns4sjg9t9iv.apps.googleusercontent.com";
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "236049845526-6pall4lrjfqbs0ga6t3j9ns4sjg9t9iv.apps.googleusercontent.com";
     const google = (window as any).google;
     if (google?.accounts?.id && authMethod === "google") {
       try {
