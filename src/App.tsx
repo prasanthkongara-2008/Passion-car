@@ -2421,24 +2421,16 @@ function PublicView({
               </div>
             </div>
 
-            <div className="footer-nav-block">
-              <div className="footer-nav-row footer-nav-row-main">
-                <a href="#home" className="hover:text-red-500">Home</a>
-                <a href="#inventory" className="hover:text-red-500">Buy Cars</a>
-                <a href="#gallery" className="hover:text-red-500">Gallery</a>
-                <a href="#sell" className="hover:text-red-500">Sell Car</a>
-                <a href="#services" className="hover:text-red-500">Services</a>
-                <a href="#blog" className="hover:text-red-500">Blog</a>
-                <a href="#rti" className="hover:text-red-500">RTI</a>
-                <a href="#exchange" className="hover:text-red-500">Exchange</a>
-                <a href="#service" className="hover:text-red-500">Service</a>
-              </div>
-              <div className="footer-nav-row footer-nav-row-sub">
-                <a href="#emi-calculator" className="hover:text-red-500">EMI Calculator</a>
-                <a href="#about" className="hover:text-red-500">About</a>
-                <a href="#contact" className="hover:text-red-500">Contact</a>
-                <button onClick={onGoToAdmin} className="hover:text-red-500" style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", font: "inherit", padding: 0 }}>Admin Portal</button>
-              </div>
+            <div className="footer-nav-row">
+              <a href="#home" className="hover:text-red-500">Home</a>
+              <a href="#inventory" className="hover:text-red-500">Buy Cars</a>
+              <a href="#gallery" className="hover:text-red-500">Gallery</a>
+              <a href="#sell" className="hover:text-red-500">Sell Car</a>
+              <a href="#services" className="hover:text-red-500">Services</a>
+              <a href="#blog" className="hover:text-red-500">Blog</a>
+              <a href="#emi-calculator" className="hover:text-red-500">EMI Calculator</a>
+              <a href="#about" className="hover:text-red-500">About</a>
+              <a href="#contact" className="hover:text-red-500">Contact</a>
             </div>
           </div>
 

@@ -2333,29 +2333,19 @@ body.light-theme .hero-slide-img {
   border-color: transparent;
 }
 
-.footer-nav-block {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: calc(100% - 250px);
-}
-
 .footer-nav-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 14px 22px;
+  gap: 12px 20px;
   font-size: 13px;
   color: var(--text-muted);
 }
 
-@media (max-width: 1180px) {
-  .footer-nav-block {
-    max-width: 100%;
-  }
-}
-
 @media (min-width: 1181px) {
+  .footer-nav-row {
+    max-width: calc(100% - 250px);
+  }
   .footer-bottom-bar {
     padding-right: 250px;
   }
