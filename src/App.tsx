@@ -2422,26 +2422,74 @@ function PublicView({
             </div>
 
             <div className="footer-nav-row">
-              <a href="#home" className="footer-nav-link">Home</a>
-              <a href="#inventory" className="footer-nav-link">Buy Cars</a>
-              <a href="#gallery" className="footer-nav-link">Gallery</a>
-              <a href="#sell" className="footer-nav-link">Sell Car</a>
-              <a href="#services" className="footer-nav-link">Services</a>
-              <a href="#blog" className="footer-nav-link">Blog</a>
-              <a href="#emi-calculator" className="footer-nav-link">EMI Calculator</a>
-              <a href="#about" className="footer-nav-link">About</a>
-              <a href="#contact" className="footer-nav-link">Contact</a>
+              {[
+                { href: "#home", label: "Home" },
+                { href: "#inventory", label: "Buy Cars" },
+                { href: "#gallery", label: "Gallery" },
+                { href: "#sell", label: "Sell Car" },
+                { href: "#services", label: "Services" },
+                { href: "#blog", label: "Blog" },
+                { href: "#emi-calculator", label: "EMI Calculator" },
+                { href: "#about", label: "About" },
+                { href: "#contact", label: "Contact" },
+              ].map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="footer-nav-link"
+                  style={{
+                    color: theme === "light" ? "#475569" : "#f1f5f9",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                    transition: "color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#ef4444";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
+                  }}
+                >
+                  {link.label}
+                </a>
+              ))}
             </div>
           </div>
 
-          <div className="footer-bottom-bar" style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, flexWrap: "wrap", gap: 14 }}>
+          <div
+            className="footer-bottom-bar"
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: 24,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: 13,
+              flexWrap: "wrap",
+              gap: 14,
+              color: theme === "light" ? "#64748b" : "#cbd5e1",
+            }}
+          >
             <span>© {new Date().getFullYear()} Passion Car. All rights reserved.</span>
             <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
               <a
                 href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+                style={{
+                  color: theme === "light" ? "#64748b" : "#cbd5e1",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  textDecoration: "none",
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#ef4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = theme === "light" ? "#64748b" : "#cbd5e1";
+                }}
               >
                 <InstagramIcon size={16} />
                 <span>@passsioncars</span>
@@ -2450,7 +2498,20 @@ function PublicView({
                 href="https://www.youtube.com/@passioncars_madhapur"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+                style={{
+                  color: theme === "light" ? "#64748b" : "#cbd5e1",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  textDecoration: "none",
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#ef4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = theme === "light" ? "#64748b" : "#cbd5e1";
+                }}
               >
                 <YoutubeIcon size={16} />
                 <span>@passioncars_madhapur</span>
