@@ -164,6 +164,17 @@ function formatDateTime(dateStr?: string | Date | null): { date: string; time: s
   }
 }
 
+function cleanMobileNumber(val: string): string {
+  const digits = (val || "").replace(/\D/g, "");
+  if (digits.length > 10 && digits.startsWith("91")) {
+    return digits.slice(2, 12);
+  }
+  if (digits.length > 10 && digits.startsWith("0")) {
+    return digits.slice(1, 11);
+  }
+  return digits.slice(0, 10);
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<"public" | "admin">(() => {
     return window.location.pathname.startsWith("/admin") ? "admin" : "public";
@@ -1834,6 +1845,10 @@ function RtiSection() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phone) return;
+    if (form.phone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
 
     createInquiry.mutate(
       {
@@ -1998,14 +2013,17 @@ function RtiSection() {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Mobile Number *</label>
+                    <label className="form-label">Mobile Number (10 Digits) *</label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      pattern="[0-9]{10}"
                       required
-                      placeholder="e.g. 98490 12345"
+                      placeholder="10-digit mobile number (e.g. 9849012345)"
                       className="form-input"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -2055,6 +2073,10 @@ function ExchangeSection() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phone || !form.currBrand) return;
+    if (form.phone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
 
     createInquiry.mutate(
       {
@@ -2290,14 +2312,17 @@ function ExchangeSection() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Mobile Number *</label>
+                    <label className="form-label">Mobile Number (10 Digits) *</label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      pattern="[0-9]{10}"
                       required
-                      placeholder="98490 12345"
+                      placeholder="10-digit mobile number (e.g. 9849012345)"
                       className="form-input"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -2345,6 +2370,10 @@ function ServiceBookingSection() {
     e.preventDefault();
     if (!form.name.trim() || !form.phone.trim() || !form.carDetails.trim() || !form.date || !form.timeSlot) {
       setBookingError("Please provide your name, contact number, vehicle details, date, and preferred time slot.");
+      return;
+    }
+    if (form.phone.trim().length < 10) {
+      setBookingError("Please enter a valid 10-digit mobile number.");
       return;
     }
     setBookingError(null);
@@ -2615,14 +2644,17 @@ function ServiceBookingSection() {
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Mobile Number *</label>
+                      <label className="form-label">Mobile Number (10 Digits) *</label>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
                         required
-                        placeholder="e.g. 98490 12345"
+                        placeholder="10-digit mobile number (e.g. 9849012345)"
                         className="form-input"
                         value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
                       />
                     </div>
                   </div>
@@ -3651,13 +3683,16 @@ function CustomerProfileModal({
             </div>
 
             <div className="form-group">
-              <label className="form-label">Mobile Number (For WhatsApp Updates)</label>
+              <label className="form-label">Mobile Number (10 Digits - For WhatsApp Updates)</label>
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                pattern="[0-9]{10}"
                 className="form-input"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91 98490 12345"
+                onChange={(e) => setPhone(cleanMobileNumber(e.target.value))}
+                placeholder="10-digit mobile number (e.g. 9849012345)"
               />
             </div>
 
@@ -4358,6 +4393,10 @@ function SellCarQuickForm({ onSuccess }: { onSuccess: () => void }) {
       alert("Please enter car brand, your name, and phone number.");
       return;
     }
+    if (form.phone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
     const message = `Sell Inquiry: ${form.year} ${form.brand} ${form.model} (${form.fuel}), Driven: ${form.km || "N/A"} km, Expected: ₹${form.expectedPrice || "Negotiable"}`;
     createInquiry.mutate(
       {
@@ -4439,13 +4478,16 @@ function SellCarQuickForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Mobile Number *</label>
+        <label className="form-label">Mobile Number (10 Digits) *</label>
         <input
           type="tel"
-          placeholder="e.g. 98490 12345"
+          inputMode="numeric"
+          maxLength={10}
+          pattern="[0-9]{10}"
+          placeholder="10-digit mobile number (e.g. 9849012345)"
           className="form-input"
           value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
           required
         />
       </div>
@@ -4493,6 +4535,11 @@ function InquiryModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) return;
+    if (phone.trim().length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
     create.mutate(
       {
         type,
@@ -4559,12 +4606,15 @@ function InquiryModal({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Mobile Number *</label>
+                <label className="form-label">Mobile Number (10 Digits) *</label>
                 <input
                   type="tel"
-                  placeholder="e.g. +91 88858 58380"
+                  inputMode="numeric"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  placeholder="10-digit mobile number (e.g. 9849012345)"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(cleanMobileNumber(e.target.value))}
                   className="form-input"
                   required
                 />
@@ -7405,14 +7455,17 @@ Dealership: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad (+91 888
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Mobile Number *</label>
+                  <label className="form-label">Mobile Number (10 Digits) *</label>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     required
                     value={clientForm.phone}
-                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                    onChange={(e) => setClientForm({ ...clientForm, phone: cleanMobileNumber(e.target.value) })}
                     className="form-input"
-                    placeholder="+91 98850 12345"
+                    placeholder="10-digit mobile number (e.g. 9849012345)"
                   />
                 </div>
               </div>
@@ -7544,14 +7597,17 @@ Dealership: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad (+91 888
 
               <div className="form-grid-2col">
                 <div className="form-group">
-                  <label className="form-label">Phone Number *</label>
+                  <label className="form-label">Phone Number (10 Digits) *</label>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     required
                     value={tokenForm.phone}
-                    onChange={(e) => setTokenForm({ ...tokenForm, phone: e.target.value })}
+                    onChange={(e) => setTokenForm({ ...tokenForm, phone: cleanMobileNumber(e.target.value) })}
                     className="form-input"
-                    placeholder="+91 88858 58380"
+                    placeholder="10-digit mobile number (e.g. 9849012345)"
                   />
                 </div>
                 <div className="form-group">
@@ -7816,14 +7872,17 @@ function AdminSettingsTab() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Admin Mobile Number *</label>
+              <label className="form-label">Admin Mobile Number (10 Digits) *</label>
               <input
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                pattern="[0-9]{10}"
                 required
                 value={adminPhone}
-                onChange={(e) => setAdminPhone(e.target.value)}
+                onChange={(e) => setAdminPhone(cleanMobileNumber(e.target.value))}
                 className="form-input"
-                placeholder="+91 88858 58380"
+                placeholder="10-digit mobile number (e.g. 9849012345)"
               />
             </div>
           </div>
@@ -8977,13 +9036,16 @@ function AdminServicesTab() {
 
               <div className="form-grid-2col">
                 <div className="form-group">
-                  <label className="form-label">Mobile Number *</label>
+                  <label className="form-label">Mobile Number (10 Digits) *</label>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     required
                     value={modalForm.phone}
-                    onChange={(e) => setModalForm({ ...modalForm, phone: e.target.value })}
-                    placeholder="e.g. 98490 12345"
+                    onChange={(e) => setModalForm({ ...modalForm, phone: cleanMobileNumber(e.target.value) })}
+                    placeholder="10-digit mobile number (e.g. 9849012345)"
                     className="form-input"
                   />
                 </div>
