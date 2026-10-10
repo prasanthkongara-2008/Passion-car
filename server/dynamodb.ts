@@ -16,7 +16,7 @@ import type {
   ServiceBooking,
   Vehicle,
 } from "@shared/schema";
-import { storage as localStore } from "./storage";
+import { sanitizeVehicleImages, storage as localStore } from "./storage";
 
 export const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "PassionCarStore";
 export const AWS_REGION = process.env.AWS_REGION || "ap-south-1";
@@ -72,7 +72,7 @@ export class DynamoDbStorage {
       if (filters.fuelType && filters.fuelType !== "all") {
         list = list.filter((v) => v.fuelType.toLowerCase() === filters.fuelType.toLowerCase());
       }
-      return list;
+      return list.map(sanitizeVehicleImages);
     } catch (err) {
       console.warn("DynamoDB Query error, falling back to local store:", err);
       return localStore.getVehicles(filters);
@@ -94,7 +94,7 @@ export class DynamoDbStorage {
           },
         })
       );
-      return response.Item as Vehicle | undefined;
+      return response.Item ? sanitizeVehicleImages(response.Item as Vehicle) : undefined;
     } catch (err) {
       console.warn("DynamoDB Get error:", err);
       return localStore.getVehicle(id);

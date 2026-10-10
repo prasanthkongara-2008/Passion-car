@@ -545,27 +545,68 @@ api.put("/customer/profile", async (req, res) => {
 
 api.get("/customer/my-activity", async (req, res) => {
   try {
-    const phone = typeof req.query.phone === "string" ? req.query.phone.trim().replace(/\D/g, "") : "";
+    const rawPhone = typeof req.query.phone === "string" ? req.query.phone.trim().replace(/\D/g, "") : "";
+    const phone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
     const email = typeof req.query.email === "string" ? req.query.email.trim().toLowerCase() : "";
 
     const allInquiries = await storage.getInquiries();
     const allBookings = await (storage as any).getServiceBookings();
+    const allCustomers = await (storage as any).getCustomers();
+
+    const matchingPhones = new Set<string>();
+    const matchingEmails = new Set<string>();
+    if (phone) matchingPhones.add(phone);
+    if (email) matchingEmails.add(email);
+
+    allInquiries.forEach((inq) => {
+      const p = (inq.phone || "").replace(/\D/g, "").slice(-10);
+      const e = (inq.email || "").toLowerCase();
+      if ((phone && p && p === phone) || (email && e && e === email)) {
+        if (p) matchingPhones.add(p);
+        if (e) matchingEmails.add(e);
+      }
+    });
+
+    allBookings.forEach((b: any) => {
+      const p = (b.phone || "").replace(/\D/g, "").slice(-10);
+      const e = (b.email || "").toLowerCase();
+      if ((phone && p && p === phone) || (email && e && e === email)) {
+        if (p) matchingPhones.add(p);
+        if (e) matchingEmails.add(e);
+      }
+    });
+
+    (allCustomers || []).forEach((c: any) => {
+      const p = (c.phone || "").replace(/\D/g, "").slice(-10);
+      const e = (c.email || "").toLowerCase();
+      if ((phone && p && p === phone) || (email && e && e === email)) {
+        if (p) matchingPhones.add(p);
+        if (e) matchingEmails.add(e);
+      }
+    });
 
     const myInquiries = allInquiries.filter((inq) => {
-      const p = (inq.phone || "").replace(/\D/g, "");
+      const p = (inq.phone || "").replace(/\D/g, "").slice(-10);
       const e = (inq.email || "").toLowerCase();
-      return (phone && p && (p.includes(phone) || phone.includes(p))) || (email && e && e === email);
+      return (p && matchingPhones.has(p)) || (e && matchingEmails.has(e));
     });
 
     const myBookings = allBookings.filter((b: any) => {
-      const p = (b.phone || "").replace(/\D/g, "");
+      const p = (b.phone || "").replace(/\D/g, "").slice(-10);
       const e = (b.email || "").toLowerCase();
-      return (phone && p && (p.includes(phone) || phone.includes(p))) || (email && e && e === email);
+      return (p && matchingPhones.has(p)) || (e && matchingEmails.has(e));
+    });
+
+    const myCustomers = (allCustomers || []).filter((c: any) => {
+      const p = (c.phone || "").replace(/\D/g, "").slice(-10);
+      const e = (c.email || "").toLowerCase();
+      return (p && matchingPhones.has(p)) || (e && matchingEmails.has(e));
     });
 
     res.json({
       inquiries: myInquiries,
       serviceBookings: myBookings,
+      customers: myCustomers,
     });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : "Failed to load customer activity." });
@@ -897,8 +938,9 @@ api.post("/admin/vehicles", requireAdmin, async (req, res, next) => {
   try {
     const parsed = vehicleInputSchema.safeParse(req.body);
     if (!parsed.success) {
+      const issueMsg = parsed.error.issues.map((i) => `${i.path.join(".") || "field"}: ${i.message}`).join(", ");
       res.status(400).json({
-        error: "Check car details. Ensure make, model, year, price, and fuel type are valid.",
+        error: `Car validation failed: ${issueMsg}`,
         issues: parsed.error.issues,
       });
       return;

@@ -175,9 +175,73 @@ function cleanMobileNumber(val: string): string {
   return digits.slice(0, 10);
 }
 
+function buildWhatsAppShareUrl(text: string, phone?: string): string {
+  const encoded = encodeURIComponent(text);
+  if (phone) {
+    let clean = phone.replace(/\D/g, "");
+    if (clean.length === 10) {
+      clean = "91" + clean;
+    }
+    return `https://api.whatsapp.com/send?phone=${clean}&text=${encoded}`;
+  }
+  return `https://api.whatsapp.com/send?phone=918885858380&text=${encoded}`;
+}
+
+function safeOpenWhatsApp(text: string, phone?: string): void {
+  const url = buildWhatsAppShareUrl(text, phone);
+  if (typeof window !== "undefined") {
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win || win.closed || typeof win.closed === "undefined") {
+      window.location.href = url;
+    }
+  }
+}
+
+function InstagramIcon({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+      <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<"public" | "admin">(() => {
-    return window.location.pathname.startsWith("/admin") ? "admin" : "public";
+    if (typeof window === "undefined") return "public";
+    const isPathAdmin = window.location.pathname.startsWith("/admin");
+    const isHashAdmin = (window.location.hash || "").startsWith("#admin");
+    return isPathAdmin || isHashAdmin ? "admin" : "public";
   });
 
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -210,16 +274,22 @@ export default function App() {
   };
 
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentView(window.location.pathname.startsWith("/admin") ? "admin" : "public");
+    const handleSync = () => {
+      const isPathAdmin = window.location.pathname.startsWith("/admin");
+      const isHashAdmin = (window.location.hash || "").startsWith("#admin");
+      setCurrentView(isPathAdmin || isHashAdmin ? "admin" : "public");
     };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    window.addEventListener("popstate", handleSync);
+    window.addEventListener("hashchange", handleSync);
+    return () => {
+      window.removeEventListener("popstate", handleSync);
+      window.removeEventListener("hashchange", handleSync);
+    };
   }, []);
 
   const navigateTo = (view: "public" | "admin") => {
     setCurrentView(view);
-    const path = view === "admin" ? "/admin" : "/";
+    const path = view === "admin" ? "/admin#admin/overview" : "/#home";
     window.history.pushState({}, "", path);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -258,15 +328,21 @@ function PublicView({
 
   const handleOpenCar = (id: number) => {
     setSelectedVehicleId(id);
-    const targetPath = `/car/${id}`;
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState({ modal: "car", carId: id }, "", targetPath);
+    const targetHash = `#car-${id}`;
+    if (window.location.hash !== targetHash) {
+      window.history.pushState({ modal: "car", carId: id }, "", targetHash);
     }
   };
 
   const handleCloseCar = () => {
     setSelectedVehicleId(null);
-    if (window.location.pathname.startsWith("/car/")) {
+    if (window.location.hash.startsWith("#car")) {
+      if (window.history.state?.modal === "car") {
+        window.history.back();
+      } else {
+        window.history.replaceState({}, "", "/#inventory");
+      }
+    } else if (window.location.pathname.startsWith("/car/")) {
       if (window.history.state?.modal === "car") {
         window.history.back();
       } else {
@@ -280,12 +356,25 @@ function PublicView({
     type: "buy" | "sell" | "contact" | "exchange" | "test_drive";
     vehicleId?: number;
     vehicleTitle?: string;
-  }>({ open: false, type: "contact" });
-  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  }>(() => {
+    if (typeof window === "undefined") return { open: false, type: "contact" };
+    const inqMatch = window.location.hash.match(/^#inquiry-(buy|sell|contact|exchange|test_drive)/);
+    if (inqMatch) {
+      return { open: true, type: inqMatch[1] as any };
+    }
+    return { open: false, type: "contact" };
+  });
+  const [serviceModalOpen, setServiceModalOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.location.hash === "#service-book";
+  });
   const [activeGalleryCat, setActiveGalleryCat] = useState("all");
   const [lightboxImg, setLightboxImg] = useState<{ url: string; title: string; caption?: string } | null>(null);
   const [galleryDisplayCount, setGalleryDisplayCount] = useState(12);
-  const [customerAuthModal, setCustomerAuthModal] = useState(false);
+  const [customerAuthModal, setCustomerAuthModal] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.location.hash === "#signin";
+  });
   const [customerUser, setCustomerUser] = useState<{ id: string; name: string; phone: string; email: string; photo: string } | null>(() => {
     try {
       const s = localStorage.getItem("passioncar_customer_session");
@@ -294,8 +383,35 @@ function PublicView({
       return null;
     }
   });
-  const [customerProfileModal, setCustomerProfileModal] = useState(false);
+  const [customerProfileModal, setCustomerProfileModal] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.location.hash === "#profile";
+  });
   const [activeGuideModal, setActiveGuideModal] = useState<{ title: string; content: string; date: string } | null>(null);
+  const [customerBookingsModal, setCustomerBookingsModal] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.location.hash === "#bookings";
+  });
+  const [initialBookingPhone, setInitialBookingPhone] = useState<string>("");
+
+  const handleOpenBookings = (phonePrefill?: string) => {
+    if (phonePrefill) {
+      setInitialBookingPhone(phonePrefill);
+    }
+    setCustomerBookingsModal(true);
+    if (window.location.hash !== "#bookings") {
+      window.history.pushState({ modal: "bookings" }, "", "#bookings");
+    }
+  };
+
+  const handleCloseBookings = () => {
+    setCustomerBookingsModal(false);
+    if (window.history.state?.modal === "bookings") {
+      window.history.back();
+    } else if (window.location.hash === "#bookings") {
+      window.history.replaceState({}, "", "/");
+    }
+  };
 
   const handleOpenMenu = () => {
     setMobileMenuOpen(true);
@@ -390,44 +506,81 @@ function PublicView({
       window.history.replaceState({ page: "home" }, "", window.location.href);
     }
 
-    const handlePopState = (e: PopStateEvent) => {
-      const match = window.location.pathname.match(/^\/car\/(\d+)/);
-      if (match) {
-        setSelectedVehicleId(parseInt(match[1], 10));
+    const syncRoute = () => {
+      const path = window.location.pathname || "";
+      const hash = window.location.hash || "";
+
+      const carPathMatch = path.match(/^\/car\/(\d+)/);
+      const carHashMatch = hash.match(/^#car(?:-|\/)(\d+)/);
+      if (carPathMatch) {
+        setSelectedVehicleId(parseInt(carPathMatch[1], 10));
+      } else if (carHashMatch) {
+        setSelectedVehicleId(parseInt(carHashMatch[1], 10));
+      } else if (window.history.state?.modal === "car" && window.history.state.carId) {
+        setSelectedVehicleId(window.history.state.carId);
       } else {
-        const hashMatch = window.location.hash.match(/^#car-(\d+)/);
-        if (hashMatch) {
-          setSelectedVehicleId(parseInt(hashMatch[1], 10));
-        } else {
-          setSelectedVehicleId(null);
-        }
+        setSelectedVehicleId(null);
       }
 
-      if (!e.state || e.state.modal !== "inquiry") {
-        setInquiryModal((prev) => (prev.open ? { ...prev, open: false } : prev));
+      if (hash === "#bookings" || window.history.state?.modal === "bookings") {
+        setCustomerBookingsModal(true);
+      } else {
+        setCustomerBookingsModal(false);
       }
-      if (!e.state || e.state.modal !== "service") {
-        setServiceModalOpen(false);
-      }
-      if (!e.state || e.state.modal !== "menu") {
-        setMobileMenuOpen(false);
-      }
-      if (!e.state || e.state.modal !== "lightbox") {
-        setLightboxImg(null);
-      }
-      if (!e.state || e.state.modal !== "auth") {
+
+      if (hash === "#signin" || hash === "#auth" || window.history.state?.modal === "auth") {
+        setCustomerAuthModal(true);
+      } else {
         setCustomerAuthModal(false);
       }
-      if (!e.state || e.state.modal !== "profile") {
+
+      if (hash === "#profile" || window.history.state?.modal === "profile") {
+        setCustomerProfileModal(true);
+      } else {
         setCustomerProfileModal(false);
       }
-      if (!e.state || e.state.modal !== "guide") {
+
+      if (hash === "#service-book" || hash === "#service-booking" || window.history.state?.modal === "service") {
+        setServiceModalOpen(true);
+      } else {
+        setServiceModalOpen(false);
+      }
+
+      const inquiryMatch = hash.match(/^#inquiry-(buy|sell|contact|exchange|test_drive)/);
+      if (inquiryMatch || window.history.state?.modal === "inquiry") {
+        const type = (inquiryMatch ? inquiryMatch[1] : (window.history.state?.type || "contact")) as any;
+        setInquiryModal((prev) => ({
+          open: true,
+          type,
+          vehicleId: window.history.state?.vehicleId ?? prev.vehicleId,
+          vehicleTitle: window.history.state?.vehicleTitle ?? prev.vehicleTitle,
+        }));
+      } else {
+        setInquiryModal((prev) => (prev.open ? { ...prev, open: false } : prev));
+      }
+
+      if (hash === "#menu" || window.history.state?.modal === "menu") {
+        setMobileMenuOpen(true);
+      } else {
+        setMobileMenuOpen(false);
+      }
+
+      if (hash !== "#photo" && (!window.history.state || window.history.state.modal !== "lightbox")) {
+        setLightboxImg(null);
+      }
+
+      if (hash !== "#guide" && (!window.history.state || window.history.state.modal !== "guide")) {
         setActiveGuideModal(null);
       }
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    window.addEventListener("popstate", syncRoute);
+    window.addEventListener("hashchange", syncRoute);
+    syncRoute();
+    return () => {
+      window.removeEventListener("popstate", syncRoute);
+      window.removeEventListener("hashchange", syncRoute);
+    };
   }, []);
 
   const heroPhotos = useMemo(
@@ -574,6 +727,26 @@ function PublicView({
               </li>
               <li>
                 <button
+                  onClick={() => handleOpenBookings()}
+                  className="nav-link"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    font: "inherit",
+                    fontWeight: 600,
+                  }}
+                  title="View Your Booked Service Tokens, Test Drives, and Inquiries"
+                >
+                  <Ticket size={14} className="text-red-500" />
+                  <span>My Bookings</span>
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={onGoToAdmin}
                   className="nav-link"
                   style={{
@@ -672,6 +845,24 @@ function PublicView({
                 <button
                   onClick={() => {
                     handleCloseMenu();
+                    handleOpenBookings();
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    justifyContent: "center",
+                    fontSize: 13,
+                    padding: "9px 12px",
+                    gridColumn: "span 2",
+                    background: "linear-gradient(135deg, var(--primary) 0%, #b91c1c 100%)",
+                    gap: 8,
+                  }}
+                >
+                  <Ticket size={16} />
+                  <strong>My Bookings & Service Tokens</strong>
+                </button>
+                <button
+                  onClick={() => {
+                    handleCloseMenu();
                     handleOpenInquiry({ type: "test_drive" });
                   }}
                   className="btn btn-glass btn-sm"
@@ -731,6 +922,16 @@ function PublicView({
               <a href="#home" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Car size={16} /> Home
               </a>
+              <button
+                onClick={() => {
+                  handleCloseMenu();
+                  handleOpenBookings();
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12, fontWeight: 700 }}
+              >
+                <Ticket size={16} className="text-red-500" /> My Bookings & Tokens
+              </button>
               <a href="#inventory" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Search size={16} /> Buy Cars
               </a>
@@ -1262,7 +1463,7 @@ function PublicView({
               }}
             >
               <h3 style={{ color: "var(--text-main)", marginBottom: 20 }}>Quick Valuation Request</h3>
-              <SellCarQuickForm onSuccess={() => alert("Valuation request received! Our team will contact you shortly.")} />
+              <SellCarQuickForm onOpenBookings={handleOpenBookings} />
             </div>
           </div>
         </div>
@@ -1355,13 +1556,13 @@ function PublicView({
       <BlogSection onOpenArticle={handleOpenGuide} />
 
       
-      <RtiSection />
+      <RtiSection onOpenBookings={handleOpenBookings} />
 
       
-      <ExchangeSection />
+      <ExchangeSection onOpenBookings={handleOpenBookings} />
 
       
-      <ServiceBookingSection />
+      <ServiceBookingSection onOpenBookings={handleOpenBookings} />
 
       
       <EmiCalculatorSection />
@@ -1692,16 +1893,42 @@ function PublicView({
       <footer style={{ padding: "60px 0 30px", background: "var(--bg-deep)", borderTop: "1px solid var(--border)" }}>
         <div className="container">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20, marginBottom: 40 }}>
-            <div className="brand-logo">
-              <div className="brand-logo-badge">
-                <img
-                  src="/images/logo.png"
-                  alt="Passion Car Logo"
-                  className="brand-logo-img"
-                />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="brand-logo">
+                <div className="brand-logo-badge">
+                  <img
+                    src="/images/logo.png"
+                    alt="Passion Car Logo"
+                    className="brand-logo-img"
+                  />
+                </div>
+                <div className="brand-name">
+                  <span className="brand-title">PASSION CAR</span>
+                </div>
               </div>
-              <div className="brand-name">
-                <span className="brand-title">PASSION CAR</span>
+              <div className="footer-social-wrap">
+                <a
+                  href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-social-btn instagram"
+                  title="Follow Passion Car on Instagram"
+                  aria-label="Instagram"
+                >
+                  <InstagramIcon size={18} />
+                  <span>Instagram</span>
+                </a>
+                <a
+                  href="https://www.youtube.com/@passioncars_madhapur"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-social-btn youtube"
+                  title="Subscribe to Passion Car on YouTube"
+                  aria-label="YouTube"
+                >
+                  <YoutubeIcon size={18} />
+                  <span>YouTube</span>
+                </a>
               </div>
             </div>
 
@@ -1722,8 +1949,30 @@ function PublicView({
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-dim)", flexWrap: "wrap", gap: 10 }}>
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--text-dim)", flexWrap: "wrap", gap: 14 }}>
             <span>© {new Date().getFullYear()} Passion Car. All rights reserved.</span>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+              <a
+                href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--text-dim)", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+                className="hover:text-red-500"
+              >
+                <InstagramIcon size={16} />
+                <span>@passsioncars</span>
+              </a>
+              <a
+                href="https://www.youtube.com/@passioncars_madhapur"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--text-dim)", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+                className="hover:text-red-500"
+              >
+                <YoutubeIcon size={16} />
+                <span>@passioncars_madhapur</span>
+              </a>
+            </div>
             <span>{address}</span>
           </div>
         </div>
@@ -1747,7 +1996,9 @@ function PublicView({
           type={inquiryModal.type}
           vehicleId={inquiryModal.vehicleId}
           vehicleTitle={inquiryModal.vehicleTitle}
+          customerUser={customerUser}
           onClose={handleCloseInquiry}
+          onOpenBookings={handleOpenBookings}
         />
       )}
 
@@ -1844,7 +2095,15 @@ function PublicView({
 
       
       {serviceModalOpen && (
-        <ServiceBookingModal onClose={handleCloseService} />
+        <ServiceBookingModal onClose={handleCloseService} onOpenBookings={handleOpenBookings} />
+      )}
+
+      {customerBookingsModal && (
+        <CustomerBookingsModal
+          initialPhone={initialBookingPhone || customerUser?.phone || ""}
+          customerUser={customerUser}
+          onClose={handleCloseBookings}
+        />
       )}
 
       <a
@@ -2113,7 +2372,11 @@ Book a premium detailing or periodic maintenance session with Passion Car's cert
   );
 }
 
-function RtiSection() {
+function RtiSection({
+  onOpenBookings,
+}: {
+  onOpenBookings?: (phone: string) => void;
+} = {}) {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -2143,10 +2406,11 @@ function RtiSection() {
       {
         onSuccess: () => {
           setSubmitted(true);
-          const msg = encodeURIComponent(
-            `Hi Passion Car Team, I need assistance with ${form.serviceType}.\nName: ${form.name}\nPhone: ${form.phone}\nVehicle Reg: ${form.vehicleNo || "N/A"}`
-          );
-          window.open(`https://wa.me/918885858380?text=${msg}`, "_blank");
+          try {
+            localStorage.setItem("passioncar_last_phone", form.phone);
+          } catch {}
+          const msg = `*PASSION CAR RTO DESK INQUIRY*\nService: ${form.serviceType}\nCustomer: ${form.name}\nPhone: ${form.phone}\nVehicle Reg: ${form.vehicleNo || "N/A"}`;
+          safeOpenWhatsApp(msg);
         },
       }
     );
@@ -2280,17 +2544,42 @@ function RtiSection() {
               >
                 <CheckCircle2 size={32} className="text-emerald-500" style={{ margin: "0 auto 8px" }} />
                 <h4 style={{ color: "var(--text-main)", fontSize: 16 }}>Request Received</h4>
-                <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-                  Our RTO documentation specialist will call you shortly on {form.phone}.
+                <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4, marginBottom: 16 }}>
+                  Our RTO documentation specialist will call you shortly on +91 {form.phone}.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setSubmitted(false)}
-                  className="btn btn-outline btn-sm"
-                  style={{ marginTop: 14 }}
-                >
-                  Submit Another Request
-                </button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenBookings) onOpenBookings(form.phone);
+                      else window.location.hash = "#bookings";
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ flex: 1, minWidth: 140 }}
+                  >
+                    <Ticket size={14} />
+                    <span>View in My Bookings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = `*PASSION CAR RTO DESK INQUIRY*\nService: ${form.serviceType}\nCustomer: ${form.name}\nPhone: ${form.phone}\nVehicle Reg: ${form.vehicleNo || "N/A"}\nStatus: Submitted to Dealership`;
+                      safeOpenWhatsApp(msg);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ flex: 1, minWidth: 140 }}
+                  >
+                    <Share2 size={14} />
+                    <span>Share on WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitted(false)}
+                    className="btn btn-glass btn-sm"
+                  >
+                    Submit Another Request
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2381,20 +2670,46 @@ function RtiSection() {
                 <div style={{ textAlign: "center", padding: 20 }}>
                   <CheckCircle2 size={36} className="text-emerald-500" style={{ margin: "0 auto 12px" }} />
                   <h4 style={{ color: "var(--text-main)", fontSize: 18 }}>Request Received</h4>
-                  <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6 }}>
-                    Our RTO documentation specialist will call you shortly on {form.phone}.
+                  <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6, marginBottom: 20 }}>
+                    Our RTO documentation specialist will call you shortly on +91 {form.phone}.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSubmitted(false);
-                      setModalOpen(false);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ marginTop: 16 }}
-                  >
-                    Done
-                  </button>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalOpen(false);
+                        if (onOpenBookings) onOpenBookings(form.phone);
+                        else window.location.hash = "#bookings";
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1, minWidth: 140 }}
+                    >
+                      <Ticket size={14} />
+                      <span>View in My Bookings</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const msg = `*PASSION CAR RTO DESK INQUIRY*\nService: ${form.serviceType}\nCustomer: ${form.name}\nPhone: ${form.phone}\nVehicle Reg: ${form.vehicleNo || "N/A"}\nStatus: Submitted to Dealership`;
+                        safeOpenWhatsApp(msg);
+                      }}
+                      className="btn btn-outline btn-sm"
+                      style={{ flex: 1, minWidth: 140 }}
+                    >
+                      <Share2 size={14} />
+                      <span>Share on WhatsApp</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubmitted(false);
+                        setModalOpen(false);
+                      }}
+                      className="btn btn-glass btn-sm"
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2472,17 +2787,23 @@ function RtiSection() {
   );
 }
 
-function ExchangeSection() {
+function ExchangeSection({
+  onOpenBookings,
+  customerUser,
+}: {
+  onOpenBookings?: (phone: string) => void;
+  customerUser?: { id: string; name: string; phone: string; email: string; photo: string } | null;
+}) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     currBrand: "",
     currModel: "",
     currYear: "2020",
     currKm: "",
     upgradeChoice: "",
-    name: "",
-    phone: "",
-  });
+    name: customerUser?.name || "",
+    phone: customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""),
+  }));
   const [submitted, setSubmitted] = useState(false);
   const createInquiry = useCreateInquiry();
 
@@ -2504,10 +2825,11 @@ function ExchangeSection() {
       {
         onSuccess: () => {
           setSubmitted(true);
-          const msg = encodeURIComponent(
-            `Hi Passion Car Team, I would like to exchange my car.\nCurrent: ${form.currYear} ${form.currBrand} ${form.currModel} (${form.currKm || ""} km)\nTarget Upgrade: ${form.upgradeChoice || "Certified Luxury"}\nName: ${form.name}\nPhone: ${form.phone}`
-          );
-          window.open(`https://wa.me/918885858380?text=${msg}`, "_blank");
+          try {
+            localStorage.setItem("passioncar_last_phone", form.phone);
+          } catch {}
+          const msg = `*PASSION CAR EXCHANGE REQUEST*\nCurrent: ${form.currYear} ${form.currBrand} ${form.currModel} (${form.currKm || ""} km)\nTarget Upgrade: ${form.upgradeChoice || "Certified Luxury"}\nName: ${form.name}\nPhone: ${form.phone}`;
+          safeOpenWhatsApp(msg);
         },
       }
     );
@@ -2669,17 +2991,42 @@ function ExchangeSection() {
               >
                 <CheckCircle2 size={32} className="text-emerald-500" style={{ margin: "0 auto 8px" }} />
                 <h4 style={{ color: "var(--text-main)", fontSize: 16 }}>Exchange Inquiry Submitted</h4>
-                <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-                  Our valuation team will contact you on {form.phone} with the best trade-in quote.
+                <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4, marginBottom: 16 }}>
+                  Our valuation team will contact you on +91 {form.phone} with the best trade-in quote.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setSubmitted(false)}
-                  className="btn btn-outline btn-sm"
-                  style={{ marginTop: 14 }}
-                >
-                  Calculate Another
-                </button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenBookings) onOpenBookings(form.phone);
+                      else window.location.hash = "#bookings";
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ flex: 1, minWidth: 140 }}
+                  >
+                    <Ticket size={14} />
+                    <span>View in My Bookings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = `*PASSION CAR EXCHANGE REQUEST*\nCurrent: ${form.currYear} ${form.currBrand} ${form.currModel} (${form.currKm || ""} km)\nTarget Upgrade: ${form.upgradeChoice || "Certified Luxury"}\nName: ${form.name}\nPhone: ${form.phone}\nStatus: Submitted to Dealership`;
+                      safeOpenWhatsApp(msg);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ flex: 1, minWidth: 140 }}
+                  >
+                    <Share2 size={14} />
+                    <span>Share on WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitted(false)}
+                    className="btn btn-glass btn-sm"
+                  >
+                    Calculate Another
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2802,20 +3149,46 @@ function ExchangeSection() {
                 <div style={{ textAlign: "center", padding: 20 }}>
                   <CheckCircle2 size={36} className="text-emerald-500" style={{ margin: "0 auto 12px" }} />
                   <h4 style={{ color: "var(--text-main)", fontSize: 18 }}>Exchange Request Received</h4>
-                  <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6 }}>
-                    Our valuation specialist will call you shortly on {form.phone}.
+                  <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6, marginBottom: 20 }}>
+                    Our valuation specialist will call you shortly on +91 {form.phone}.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSubmitted(false);
-                      setModalOpen(false);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ marginTop: 16 }}
-                  >
-                    Done
-                  </button>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalOpen(false);
+                        if (onOpenBookings) onOpenBookings(form.phone);
+                        else window.location.hash = "#bookings";
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1, minWidth: 140 }}
+                    >
+                      <Ticket size={14} />
+                      <span>View in My Bookings</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const msg = `*PASSION CAR EXCHANGE REQUEST*\nCurrent: ${form.currYear} ${form.currBrand} ${form.currModel} (${form.currKm || ""} km)\nTarget Upgrade: ${form.upgradeChoice || "Certified Luxury"}\nName: ${form.name}\nPhone: ${form.phone}\nStatus: Submitted to Dealership`;
+                        safeOpenWhatsApp(msg);
+                      }}
+                      className="btn btn-outline btn-sm"
+                      style={{ flex: 1, minWidth: 140 }}
+                    >
+                      <Share2 size={14} />
+                      <span>Share on WhatsApp</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubmitted(false);
+                        setModalOpen(false);
+                      }}
+                      className="btn btn-glass btn-sm"
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -2927,19 +3300,36 @@ function ExchangeSection() {
   );
 }
 
-function ServiceBookingSection() {
+function ServiceBookingSection({
+  onOpenBookings,
+  customerUser,
+}: {
+  onOpenBookings?: (phone: string) => void;
+  customerUser?: { id: string; name: string; phone: string; email: string; photo: string } | null;
+}) {
   const [modalOpen, setModalOpen] = useState(false);
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
+  const [form, setForm] = useState(() => ({
+    name: customerUser?.name || "",
+    phone: customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""),
+    email: customerUser?.email || "",
     carDetails: "",
     servicePackage: "Periodic Comprehensive Service",
     date: todayStr,
     timeSlot: "09:30 AM - 11:00 AM (Morning Slot)",
     notes: "",
-  });
+  }));
+
+  useEffect(() => {
+    if (customerUser) {
+      setForm((prev) => ({
+        ...prev,
+        name: prev.name || customerUser.name || "",
+        phone: prev.phone || customerUser.phone || "",
+        email: prev.email || customerUser.email || "",
+      }));
+    }
+  }, [customerUser]);
 
   const [bookingPass, setBookingPass] = useState<{
     token: string;
@@ -2979,6 +3369,9 @@ function ServiceBookingSection() {
             token: data.token,
             booking: data.booking,
           });
+          try {
+            localStorage.setItem("passioncar_last_phone", data.booking.phone);
+          } catch {}
         },
         onError: (err: any) => {
           setBookingError(err?.message || "Could not book service slot. Please verify your phone number and details.");
@@ -2987,10 +3380,8 @@ function ServiceBookingSection() {
     );
   };
 
-  const handleShareWhatsApp = () => {
-    if (!bookingPass) return;
-    const msg = encodeURIComponent(
-      `*PASSION CAR OFFICIAL SERVICE PASS*\n` +
+  const passMsg = bookingPass
+    ? `*PASSION CAR OFFICIAL SERVICE PASS*\n` +
       `🎫 *Token ID:* ${bookingPass.token}\n` +
       `👤 *Customer:* ${bookingPass.booking.customerName}\n` +
       `📞 *Phone:* ${bookingPass.booking.phone}\n` +
@@ -3000,8 +3391,11 @@ function ServiceBookingSection() {
       `⏰ *Time Slot:* ${bookingPass.booking.timeSlot}\n` +
       `📍 *Location:* Passion Car, Plot No 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad\n` +
       `Status: Confirmed Slot`
-    );
-    window.open(`https://wa.me/918885858380?text=${msg}`, "_blank");
+    : "";
+
+  const handleShareWhatsApp = () => {
+    if (!passMsg) return;
+    safeOpenWhatsApp(passMsg);
   };
 
   const services = [
@@ -3187,8 +3581,23 @@ function ServiceBookingSection() {
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button
                     type="button"
-                    onClick={handleShareWhatsApp}
+                    onClick={() => {
+                      if (onOpenBookings) {
+                        onOpenBookings(bookingPass.booking.phone);
+                      } else {
+                        window.location.hash = "#bookings";
+                      }
+                    }}
                     className="btn btn-primary"
+                    style={{ flex: 1, minWidth: 160 }}
+                  >
+                    <Ticket size={15} />
+                    <span>View in My Bookings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShareWhatsApp}
+                    className="btn btn-outline"
                     style={{ flex: 1, minWidth: 160 }}
                   >
                     <Share2 size={15} />
@@ -3197,8 +3606,8 @@ function ServiceBookingSection() {
                   <button
                     type="button"
                     onClick={() => setBookingPass(null)}
-                    className="btn btn-outline"
-                    style={{ flex: 1, minWidth: 160 }}
+                    className="btn btn-glass"
+                    style={{ flex: 1, minWidth: 140 }}
                   >
                     <Plus size={15} />
                     <span>Book Another Slot</span>
@@ -3352,6 +3761,8 @@ function ServiceBookingSection() {
         <ServiceBookingModal
           onClose={() => setModalOpen(false)}
           initialPackage={form.servicePackage}
+          customerUser={customerUser}
+          onOpenBookings={onOpenBookings}
         />
       )}
     </section>
@@ -4554,6 +4965,443 @@ function CustomerProfileModal({
   );
 }
 
+function CustomerBookingsModal({
+  initialPhone,
+  customerUser,
+  onClose,
+}: {
+  initialPhone?: string;
+  customerUser?: { id: string; name: string; phone: string; email: string; photo: string } | null;
+  onClose: () => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"all" | "service" | "test_drive" | "exchange_sell" | "inquiry">("all");
+  const [phone, setPhone] = useState<string>(() => {
+    if (initialPhone && initialPhone.trim()) return initialPhone.trim();
+    if (customerUser?.phone && customerUser.phone.trim()) return customerUser.phone.trim();
+    try {
+      return localStorage.getItem("passioncar_last_phone") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [inputPhone, setInputPhone] = useState(phone);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const { data: activityData, isLoading, refetch } = useCustomerActivity(
+    { phone, email: customerUser?.email },
+    Boolean(phone || customerUser?.email)
+  );
+
+  const handleLookup = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = cleanMobileNumber(inputPhone);
+    if (clean.length < 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    setPhone(clean);
+    try {
+      localStorage.setItem("passioncar_last_phone", clean);
+    } catch {}
+  };
+
+  const combinedBookings = useMemo(() => {
+    const list: Array<{
+      id: string;
+      kind: "service" | "test_drive" | "exchange_sell" | "inquiry";
+      title: string;
+      details: string;
+      status: string;
+      dateStr: string;
+      token?: string;
+      customerName: string;
+      phone: string;
+      adminReply?: string | null;
+      confirmedSlotTime?: string | null;
+      slotConfirmed?: boolean;
+    }> = [];
+
+    (activityData?.serviceBookings || []).forEach((b) => {
+      list.push({
+        id: `srv_${b.id}`,
+        kind: "service",
+        title: `🔧 Service Slot: #${b.token}`,
+        details: `${b.servicePackage} · ${b.carDetails} (${b.timeSlot || ""})`,
+        status: b.status || "confirmed",
+        dateStr: b.date || (b as any).createdAt || "",
+        token: b.token,
+        customerName: b.customerName,
+        phone: b.phone,
+      });
+    });
+
+    ((activityData as any)?.customers || []).forEach((c: any) => {
+      const isBought = c.transactionType === "bought_from_dealership";
+      const isSold = c.transactionType === "sold_to_dealership";
+      const title = isBought
+        ? `🤝 Car Purchased: ${c.carModel}`
+        : isSold
+        ? `🚗 Car Sold to Us: ${c.carModel}`
+        : `🏷️ Current Buyer: ${c.carModel}`;
+      list.push({
+        id: `cust_${c.id}`,
+        kind: "exchange_sell",
+        title,
+        details: `${c.regNumber ? `Reg: ${c.regNumber} · ` : ""}${c.amountInr ? `Amount: ₹${c.amountInr.toLocaleString("en-IN")} · ` : ""}${c.notes || "Transaction recorded by dealership"}`,
+        status: c.status || "completed",
+        dateStr: c.date || "",
+        customerName: c.name,
+        phone: c.phone,
+        token: c.serviceToken || undefined,
+      });
+    });
+
+    (activityData?.inquiries || []).forEach((i) => {
+      const isTd = i.type === "test_drive";
+      const isEx = i.type === "exchange";
+      const isSell = i.type === "sell";
+      const isBuy = i.type === "buy";
+
+      let kind: "service" | "test_drive" | "exchange_sell" | "inquiry" = "inquiry";
+      let title = "📝 Showroom Inquiry";
+      if (isTd) {
+        kind = "test_drive";
+        title = "🚗 Test Drive Slot Booking";
+      } else if (isEx) {
+        kind = "exchange_sell";
+        title = "🔄 Car Exchange Slot";
+      } else if (isSell) {
+        kind = "exchange_sell";
+        title = "💰 Sell Car Valuation Slot";
+      } else if (isBuy) {
+        kind = "inquiry";
+        title = "🏷️ Purchase Quote Request";
+      }
+
+      list.push({
+        id: `inq_${i.id}`,
+        kind,
+        title,
+        details: i.message || "Customer request submitted to Passion Car team",
+        status: i.status || "new",
+        dateStr: (i.createdAt as any) || "",
+        customerName: i.name,
+        phone: i.phone,
+        adminReply: i.adminReply,
+        confirmedSlotTime: i.confirmedSlotTime,
+        slotConfirmed: i.slotConfirmed,
+      });
+    });
+
+    return list.filter((item) => {
+      if (activeTab === "all") return true;
+      return item.kind === activeTab;
+    });
+  }, [activityData, activeTab]);
+
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(239, 68, 68, 0.15)", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Ticket size={20} />
+            </div>
+            <div>
+              <h3 style={{ color: "var(--text-main)", margin: 0, fontSize: 18 }}>My Bookings & Tokens</h3>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                Track service passes, test drives, exchange & sell slots
+              </span>
+            </div>
+          </div>
+          <button onClick={onClose} className="modal-close-btn" aria-label="Close modal">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: 20 }}>
+          {customerUser && (
+            <div
+              style={{
+                background: "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(30, 41, 59, 0.7) 100%)",
+                border: "1px solid rgba(16, 185, 129, 0.4)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px 16px",
+                marginBottom: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {customerUser.photo ? (
+                  <img
+                    src={customerUser.photo}
+                    alt={customerUser.name}
+                    style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", border: "1px solid #10b981" }}
+                  />
+                ) : (
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#10b981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
+                    {customerUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>{customerUser.name}</span>
+                    <span className="badge badge-green" style={{ fontSize: 10, padding: "2px 6px" }}>Signed In</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                    Account: {customerUser.email || customerUser.phone || "Active"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="btn btn-glass btn-sm"
+                  style={{ fontSize: 11, padding: "4px 8px" }}
+                >
+                  <RefreshCw size={12} className={isLoading ? "animate-spin" : ""} />
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!phone && !customerUser ? (
+            <form onSubmit={handleLookup} style={{ textAlign: "center", padding: "16px 8px" }}>
+              <div style={{ width: 50, height: 50, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "var(--primary)" }}>
+                <Phone size={24} />
+              </div>
+              <h4 style={{ color: "var(--text-main)", marginBottom: 6, fontSize: 16 }}>Lookup Your Booked Slots</h4>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, maxWidth: 420, margin: "0 auto 20px" }}>
+                Enter your 10-digit mobile number used when booking service, test drive, exchange, or selling a car.
+              </p>
+              <div style={{ display: "flex", gap: 8, maxWidth: 360, margin: "0 auto" }}>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  placeholder="10-digit mobile number"
+                  value={inputPhone}
+                  onChange={(e) => setInputPhone(cleanMobileNumber(e.target.value))}
+                  className="form-input"
+                  style={{ flex: 1, textAlign: "center", fontSize: 15, letterSpacing: 1 }}
+                  required
+                />
+                <button type="submit" className="btn btn-primary">
+                  <span>Find Bookings</span>
+                </button>
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    window.location.hash = "#signin";
+                  }}
+                  className="btn btn-glass btn-sm"
+                  style={{ fontSize: 12, gap: 6 }}
+                >
+                  <GoogleLogo size={14} />
+                  <span>Sign in with Google to view account bookings</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "10px 14px", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Phone size={14} className="text-red-500" />
+                  <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 600 }}>
+                    {phone ? `Bookings for: +91 ${phone}` : `Bookings for: ${customerUser?.email || "Connected Account"}`}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    className="btn btn-glass btn-sm"
+                    title="Refresh Bookings"
+                    style={{ fontSize: 11, padding: "4px 8px" }}
+                  >
+                    <RefreshCw size={12} className={isLoading ? "animate-spin" : ""} />
+                    <span>Refresh</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhone("");
+                      setInputPhone("");
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: 11, padding: "4px 8px" }}
+                  >
+                    Change Number
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+                {(
+                  [
+                    { id: "all", label: "All Bookings" },
+                    { id: "service", label: "🔧 Service Passes" },
+                    { id: "test_drive", label: "🚗 Test Drives" },
+                    { id: "exchange_sell", label: "🔄 Exchange & Sell" },
+                    { id: "inquiry", label: "🏷️ Quotes & Inquiries" },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`btn btn-sm ${activeTab === tab.id ? "btn-primary" : "btn-glass"}`}
+                    style={{ fontSize: 11, padding: "5px 10px" }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {isLoading ? (
+                <div style={{ textAlign: "center", padding: 36 }}>
+                  <RefreshCw className="animate-spin" size={24} style={{ margin: "0 auto 8px" }} />
+                  <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Checking active tokens and slots...</p>
+                </div>
+              ) : combinedBookings.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 16px", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
+                  <Ticket size={32} style={{ color: "var(--text-dim)", margin: "0 auto 10px" }} />
+                  <h4 style={{ color: "var(--text-main)", marginBottom: 4, fontSize: 15 }}>No Bookings Found</h4>
+                  <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
+                    We could not find any active bookings under +91 {phone}.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "55vh", overflowY: "auto", paddingRight: 4 }}>
+                  {combinedBookings.map((item) => {
+                    const formatted = formatDateTime(item.dateStr);
+                    const shareMsg = `*PASSION CAR OFFICIAL PASS*\n` +
+                      `📌 *Booking:* ${item.title}\n` +
+                      `👤 *Customer:* ${item.customerName}\n` +
+                      `📞 *Phone:* ${item.phone}\n` +
+                      `📝 *Details:* ${item.details}\n` +
+                      `📅 *Date:* ${formatted.date || item.dateStr}\n` +
+                      (item.confirmedSlotTime ? `⏰ *Confirmed Slot:* ${item.confirmedSlotTime}\n` : "") +
+                      (item.adminReply ? `💬 *Advisor Note:* ${item.adminReply}\n` : "") +
+                      `📍 Passion Car, Plot No 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad\n` +
+                      `Status: ${item.status.toUpperCase()}`;
+
+                    const isConfirmed = item.status === "confirmed" || item.status === "completed";
+                    const isService = item.kind === "service";
+
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: "var(--bg-card)",
+                          border: isService ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid var(--border)",
+                          borderRadius: "var(--radius-md)",
+                          padding: 16,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
+                          <div>
+                            <strong style={{ color: "var(--text-main)", fontSize: 15, display: "block" }}>
+                              {item.title}
+                            </strong>
+                            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                              {formatted.date} {formatted.time ? `· ${formatted.time}` : ""}
+                            </span>
+                          </div>
+                          <span
+                            className={`badge ${isConfirmed ? "badge-green" : item.status === "in_progress" ? "badge-gold" : "badge-red"}`}
+                            style={{ textTransform: "capitalize", fontSize: 11 }}
+                          >
+                            {item.status.replace("_", " ")}
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
+                          {item.details}
+                        </p>
+
+                        {item.adminReply && (
+                          <div style={{ background: "rgba(56, 189, 248, 0.08)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: 6, padding: "8px 12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                              <strong style={{ fontSize: 11, color: "#38bdf8", display: "flex", alignItems: "center", gap: 4 }}>
+                                <MessageSquare size={12} />
+                                <span>Showroom Response</span>
+                              </strong>
+                              {item.slotConfirmed && item.confirmedSlotTime && (
+                                <span className="badge badge-gold" style={{ fontSize: 10 }}>
+                                  Slot Confirmed: {item.confirmedSlotTime}
+                                </span>
+                              )}
+                            </div>
+                            <p style={{ fontSize: 12, color: "var(--text-main)", margin: 0, lineHeight: 1.4 }}>
+                              {item.adminReply}
+                            </p>
+                          </div>
+                        )}
+
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 4 }}>
+                          <a
+                            href={buildWhatsAppShareUrl(shareMsg)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: 11, padding: "6px 12px" }}
+                          >
+                            <Share2 size={13} />
+                            <span>Share on WhatsApp</span>
+                          </a>
+                          <a
+                            href={buildWhatsAppShareUrl(shareMsg, "918885858380")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-glass btn-sm"
+                            style={{ fontSize: 11, padding: "6px 12px" }}
+                          >
+                            <MessageSquare size={13} />
+                            <span>Showroom WhatsApp</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(item.id, shareMsg)}
+                            className="btn btn-outline btn-sm"
+                            style={{ fontSize: 11, padding: "6px 10px" }}
+                          >
+                            <Copy size={13} />
+                            <span>{copiedId === item.id ? "Copied!" : "Copy"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CarCard({
   vehicle,
   onViewDetails,
@@ -4705,19 +5553,42 @@ function VehicleDetailModal({
   const [downPercent, setDownPercent] = useState(20);
   const [interestRate, setInterestRate] = useState(9.5);
   const [tenureMonths, setTenureMonths] = useState(60);
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
-  if (isLoading || !vehicle) {
+  useEffect(() => {
+    setSelectedImgIdx(0);
+  }, [id]);
+
+  if (isLoading) {
     return (
-      <div className="modal-backdrop">
-        <div className="modal-content" style={{ padding: 40, textAlign: "center" }}>
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-content" style={{ padding: 40, textAlign: "center", position: "relative", maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={onClose} className="modal-close-btn" type="button" style={{ position: "absolute", top: 14, right: 14 }}><X size={20} /></button>
           <RefreshCw className="animate-spin" size={32} style={{ margin: "0 auto 16px" }} />
-          <p>Loading vehicle details...</p>
+          <p style={{ color: "var(--text-main)", fontWeight: 600 }}>Loading vehicle details...</p>
         </div>
       </div>
     );
   }
 
-  const price = vehicle.priceInr;
+  if (!vehicle) {
+    return (
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-content" style={{ padding: 40, textAlign: "center", position: "relative", maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={onClose} className="modal-close-btn" type="button" style={{ position: "absolute", top: 14, right: 14 }}><X size={20} /></button>
+          <Info size={36} color="var(--primary)" style={{ margin: "0 auto 16px" }} />
+          <h3 style={{ color: "var(--text-main)", marginBottom: 8 }}>Vehicle Not Found</h3>
+          <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 20 }}>
+            This vehicle may have been sold or removed from the inventory.
+          </p>
+          <button onClick={onClose} className="btn btn-primary btn-sm">Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  const features = Array.isArray(vehicle.features) ? vehicle.features : [];
+  const price = vehicle.priceInr || 0;
   const downPaymentAmt = Math.round(price * (downPercent / 100));
   const loanAmount = price - downPaymentAmt;
   const r = interestRate / 1200;
@@ -4755,7 +5626,6 @@ function VehicleDetailModal({
   const deliveryRegex = /\/images\/(reviews\/|hero-delivery)/i;
   const filteredCarImages = (vehicle.imageUrls || []).filter((u) => !deliveryRegex.test(u));
   const carImages = filteredCarImages.length > 0 ? filteredCarImages : fallbackCarPhotos;
-  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -4876,7 +5746,7 @@ function VehicleDetailModal({
               className={`btn btn-sm ${activeTab === "features" ? "btn-primary" : "btn-glass"}`}
             >
               <ShieldCheck size={14} />
-              <span>Certified Features ({vehicle.features.length})</span>
+              <span>Certified Features ({features.length})</span>
             </button>
           </div>
 
@@ -4911,7 +5781,7 @@ function VehicleDetailModal({
           {activeTab === "emi" && (
             <div className="grid-2col-responsive">
               <div>
-                <h4 style={{ color: "#ffffff", marginBottom: 20 }}>Customize Loan Parameters</h4>
+                <h4 style={{ color: "var(--text-main)", marginBottom: 20 }}>Customize Loan Parameters</h4>
 
                 
                 <div className="form-group">
@@ -4969,7 +5839,7 @@ function VehicleDetailModal({
               
               <div
                 style={{
-                  background: "var(--bg-card)",
+                  background: "var(--bg-surface)",
                   border: "1px solid var(--border)",
                   borderRadius: "var(--radius-sm)",
                   padding: "24px",
@@ -4987,7 +5857,7 @@ function VehicleDetailModal({
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                     <span style={{ color: "var(--text-muted)" }}>Loan Principal:</span>
-                    <strong style={{ color: "#ffffff" }}>{formatInr(loanAmount)}</strong>
+                    <strong style={{ color: "var(--text-main)" }}>{formatInr(loanAmount)}</strong>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                     <span style={{ color: "var(--text-muted)" }}>Total Interest Payable:</span>
@@ -4995,7 +5865,7 @@ function VehicleDetailModal({
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                     <span style={{ color: "var(--text-muted)" }}>Total Amount Payable:</span>
-                    <strong style={{ color: "#ffffff" }}>{formatInr(totalPayable)}</strong>
+                    <strong style={{ color: "var(--text-main)" }}>{formatInr(totalPayable)}</strong>
                   </div>
                 </div>
 
@@ -5013,11 +5883,11 @@ function VehicleDetailModal({
           
           {activeTab === "features" && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-              {vehicle.features.map((feat, i) => (
+              {features.map((feat, i) => (
                 <div
                   key={i}
                   style={{
-                    background: "var(--bg-card)",
+                    background: "var(--bg-surface)",
                     border: "1px solid var(--border)",
                     borderRadius: "var(--radius-sm)",
                     padding: "12px 16px",
@@ -5027,7 +5897,7 @@ function VehicleDetailModal({
                   }}
                 >
                   <CheckCircle2 size={16} className="text-emerald-400" />
-                  <span style={{ fontSize: 13, color: "#ffffff" }}>{feat}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-main)" }}>{feat}</span>
                 </div>
               ))}
             </div>
@@ -5042,19 +5912,26 @@ function SpecItem({ label, value }: { label: string; value: string }) {
   return (
     <div
       style={{
-        background: "var(--bg-card)",
+        background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--radius-sm)",
         padding: "12px 14px",
       }}
     >
       <span style={{ fontSize: 11, color: "var(--text-dim)", textTransform: "uppercase" }}>{label}</span>
-      <div style={{ fontSize: 14, fontWeight: 600, color: "#ffffff", marginTop: 4 }}>{value}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-main)", marginTop: 4 }}>{value}</div>
     </div>
   );
 }
 
-function SellCarQuickForm({ onSuccess }: { onSuccess: () => void }) {
+function SellCarQuickForm({
+  onSuccess,
+  onOpenBookings,
+}: {
+  onSuccess?: () => void;
+  onOpenBookings?: (phone: string) => void;
+}) {
+  const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
     brand: "",
     model: "",
@@ -5087,12 +5964,72 @@ function SellCarQuickForm({ onSuccess }: { onSuccess: () => void }) {
       },
       {
         onSuccess: () => {
-          onSuccess();
-          setForm({ brand: "", model: "", year: "2020", fuel: "Petrol", km: "", expectedPrice: "", name: "", phone: "" });
+          try {
+            localStorage.setItem("passioncar_last_phone", form.phone);
+          } catch {}
+          setSubmitted(true);
+          if (onSuccess) onSuccess();
         },
       }
     );
   };
+
+  if (submitted) {
+    return (
+      <div
+        style={{
+          background: "rgba(34, 197, 94, 0.08)",
+          border: "1px solid rgba(34, 197, 94, 0.3)",
+          borderRadius: "var(--radius-md)",
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <CheckCircle2 size={36} className="text-emerald-500" style={{ margin: "0 auto 10px" }} />
+        <h4 style={{ color: "var(--text-main)", fontSize: 18, marginBottom: 6 }}>Valuation Request Registered!</h4>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
+          Your car valuation slot for {form.year} {form.brand} {form.model} is saved under your account for +91 {form.phone}.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenBookings) onOpenBookings(form.phone);
+              else window.location.hash = "#bookings";
+            }}
+            className="btn btn-primary"
+            style={{ flex: 1, minWidth: 150, justifyContent: "center" }}
+          >
+            <Ticket size={15} />
+            <span>View in My Bookings</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const text = `*PASSION CAR SELL CAR VALUATION REQUEST*\n👤 *Name:* ${form.name}\n📞 *Phone:* ${form.phone}\n🚗 *Car:* ${form.year} ${form.brand} ${form.model} (${form.fuel})\n🛣️ *KM Driven:* ${form.km || "N/A"}\n💰 *Expected Price:* ₹${form.expectedPrice || "Negotiable"}\nStatus: Submitted to Dealership`;
+              safeOpenWhatsApp(text);
+            }}
+            className="btn btn-outline"
+            style={{ flex: 1, minWidth: 150, justifyContent: "center" }}
+          >
+            <Share2 size={15} />
+            <span>Share on WhatsApp</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSubmitted(false);
+              setForm({ brand: "", model: "", year: "2020", fuel: "Petrol", km: "", expectedPrice: "", name: "", phone: "" });
+            }}
+            className="btn btn-glass"
+            style={{ flex: 1, minWidth: 100, justifyContent: "center" }}
+          >
+            Submit Another
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="form-grid-2col" style={{ gap: 12 }}>
@@ -5189,21 +6126,36 @@ function SellCarQuickForm({ onSuccess }: { onSuccess: () => void }) {
 function ServiceBookingModal({
   onClose,
   initialPackage,
+  customerUser,
+  onOpenBookings,
 }: {
   onClose: () => void;
   initialPackage?: string;
+  customerUser?: { id: string; name: string; phone: string; email: string; photo: string } | null;
+  onOpenBookings?: (phone: string) => void;
 }) {
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
+  const [form, setForm] = useState(() => ({
+    name: customerUser?.name || "",
+    phone: customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""),
+    email: customerUser?.email || "",
     carDetails: "",
     servicePackage: initialPackage || "Periodic Comprehensive Service",
     date: todayStr,
     timeSlot: "09:30 AM - 11:00 AM (Morning Slot)",
     notes: "",
-  });
+  }));
+
+  useEffect(() => {
+    if (customerUser) {
+      setForm((prev) => ({
+        ...prev,
+        name: prev.name || customerUser.name || "",
+        phone: prev.phone || customerUser.phone || "",
+        email: prev.email || customerUser.email || "",
+      }));
+    }
+  }, [customerUser]);
 
   const [bookingPass, setBookingPass] = useState<{
     token: string;
@@ -5243,6 +6195,9 @@ function ServiceBookingModal({
             token: data.token,
             booking: data.booking,
           });
+          try {
+            localStorage.setItem("passioncar_last_phone", data.booking.phone);
+          } catch {}
         },
         onError: (err: any) => {
           setBookingError(err?.message || "Could not book service slot. Please verify your phone number and details.");
@@ -5253,7 +6208,7 @@ function ServiceBookingModal({
 
   const handleShareWhatsApp = () => {
     if (!bookingPass) return;
-    const msg = encodeURIComponent(
+    const msg =
       `*PASSION CAR OFFICIAL SERVICE PASS*\n` +
       `🎫 *Token ID:* ${bookingPass.token}\n` +
       `👤 *Customer:* ${bookingPass.booking.customerName}\n` +
@@ -5263,9 +6218,8 @@ function ServiceBookingModal({
       `📅 *Date:* ${bookingPass.booking.date}\n` +
       `⏰ *Time Slot:* ${bookingPass.booking.timeSlot}\n` +
       `📍 *Location:* Passion Car, Plot No 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad\n` +
-      `Status: Confirmed Slot`
-    );
-    window.open(`https://wa.me/918885858380?text=${msg}`, "_blank");
+      `Status: Confirmed Slot`;
+    safeOpenWhatsApp(msg);
   };
 
   return (
@@ -5356,8 +6310,24 @@ function ServiceBookingModal({
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
                   type="button"
-                  onClick={handleShareWhatsApp}
+                  onClick={() => {
+                    onClose();
+                    if (onOpenBookings) {
+                      onOpenBookings(bookingPass.booking.phone);
+                    } else {
+                      window.location.hash = "#bookings";
+                    }
+                  }}
                   className="btn btn-primary"
+                  style={{ flex: 1, minWidth: 140, justifyContent: "center" }}
+                >
+                  <Ticket size={15} />
+                  <span>View in My Bookings</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShareWhatsApp}
+                  className="btn btn-outline"
                   style={{ flex: 1, minWidth: 140, justifyContent: "center" }}
                 >
                   <Share2 size={15} />
@@ -5366,8 +6336,8 @@ function ServiceBookingModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="btn btn-outline"
-                  style={{ flex: 1, minWidth: 140, justifyContent: "center" }}
+                  className="btn btn-glass"
+                  style={{ flex: 1, minWidth: 100, justifyContent: "center" }}
                 >
                   <span>Done</span>
                 </button>
@@ -5512,18 +6482,30 @@ function InquiryModal({
   type,
   vehicleId,
   vehicleTitle,
+  customerUser,
+  onOpenBookings,
   onClose,
 }: {
   type: "buy" | "sell" | "contact" | "exchange" | "test_drive";
   vehicleId?: number;
   vehicleTitle?: string;
+  customerUser?: { id: string; name: string; phone: string; email: string; photo: string } | null;
+  onOpenBookings?: (phone: string) => void;
   onClose: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(() => customerUser?.name || "");
+  const [phone, setPhone] = useState(() => customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""));
+  const [email, setEmail] = useState(() => customerUser?.email || "");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (customerUser) {
+      if (customerUser.name && !name) setName(customerUser.name);
+      if (customerUser.phone && !phone) setPhone(customerUser.phone);
+      if (customerUser.email && !email) setEmail(customerUser.email);
+    }
+  }, [customerUser]);
 
   const create = useCreateInquiry();
 
@@ -5552,7 +6534,12 @@ function InquiryModal({
         vehicleId,
       },
       {
-        onSuccess: () => setSubmitted(true),
+        onSuccess: () => {
+          setSubmitted(true);
+          try {
+            localStorage.setItem("passioncar_last_phone", phone);
+          } catch {}
+        },
       }
     );
   };
@@ -5561,7 +6548,7 @@ function InquiryModal({
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 style={{ color: "#ffffff" }}>{titles[type]}</h3>
+          <h3 style={{ color: "var(--text-main)" }}>{titles[type]}</h3>
           <button onClick={onClose} className="modal-close-btn">
             <X size={20} />
           </button>
@@ -5585,13 +6572,45 @@ function InquiryModal({
               >
                 <Check size={28} />
               </div>
-              <h3 style={{ color: "#ffffff", marginBottom: 8 }}>Inquiry Received!</h3>
-              <p style={{ color: "var(--text-muted)", marginBottom: 24, fontSize: 14 }}>
-                Thank you, {name}. Our senior vehicle advisor will connect with you on {phone} within 30 minutes.
+              <h3 style={{ color: "var(--text-main)", marginBottom: 8 }}>Inquiry Registered!</h3>
+              <p style={{ color: "var(--text-muted)", marginBottom: 20, fontSize: 14 }}>
+                Thank you, {name}. Your booking is logged under your account for +91 {phone}. Our advisor will reach out shortly.
               </p>
-              <button onClick={onClose} className="btn btn-primary">
-                Done
-              </button>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onOpenBookings) onOpenBookings(phone);
+                    else window.location.hash = "#bookings";
+                  }}
+                  className="btn btn-primary"
+                  style={{ flex: 1, minWidth: 150, justifyContent: "center" }}
+                >
+                  <Ticket size={15} />
+                  <span>View in My Bookings</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `*PASSION CAR OFFICIAL ENQUIRY*\n👤 *Name:* ${name}\n📞 *Phone:* ${phone}\n📌 *Category:* ${titles[type]}\n${vehicleTitle ? `🚗 *Vehicle:* ${vehicleTitle}\n` : ""}${message ? `📝 *Message:* ${message}\n` : ""}Status: Submitted to Dealership`;
+                    safeOpenWhatsApp(text);
+                  }}
+                  className="btn btn-outline"
+                  style={{ flex: 1, minWidth: 150, justifyContent: "center" }}
+                >
+                  <Share2 size={15} />
+                  <span>Share on WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn btn-glass"
+                  style={{ flex: 1, minWidth: 90, justifyContent: "center" }}
+                >
+                  Done
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
@@ -5671,7 +6690,48 @@ function AdminView({
 }) {
   const { data: sessionData, isLoading: loadingSession } = useAdminSession();
   const { data: summary } = useAdminSummary();
-  const [tab, setTab] = useState<"overview" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">("overview");
+  const [tab, setTab] = useState<"overview" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">(() => {
+    if (typeof window === "undefined") return "overview";
+    const h = (window.location.hash || "").toLowerCase();
+    if (h.includes("cars")) return "cars";
+    if (h.includes("customers")) return "customers";
+    if (h.includes("inquiries")) return "inquiries";
+    if (h.includes("services")) return "services";
+    if (h.includes("gallery")) return "gallery";
+    if (h.includes("settings")) return "settings";
+    return "overview";
+  });
+
+  const handleSelectTab = (newTab: "overview" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings") => {
+    setTab(newTab);
+    const targetHash = `#admin/${newTab}`;
+    if (window.location.hash !== targetHash) {
+      window.history.pushState({ adminTab: newTab }, "", targetHash);
+    }
+  };
+
+  useEffect(() => {
+    const handleAdminSync = () => {
+      if (window.history.state?.adminTab) {
+        setTab(window.history.state.adminTab);
+      } else {
+        const h = (window.location.hash || "").toLowerCase();
+        if (h.includes("cars")) setTab("cars");
+        else if (h.includes("customers")) setTab("customers");
+        else if (h.includes("inquiries")) setTab("inquiries");
+        else if (h.includes("services")) setTab("services");
+        else if (h.includes("gallery")) setTab("gallery");
+        else if (h.includes("settings")) setTab("settings");
+        else setTab("overview");
+      }
+    };
+    window.addEventListener("popstate", handleAdminSync);
+    window.addEventListener("hashchange", handleAdminSync);
+    return () => {
+      window.removeEventListener("popstate", handleAdminSync);
+      window.removeEventListener("hashchange", handleAdminSync);
+    };
+  }, []);
 
   if (loadingSession) {
     return (
@@ -5808,7 +6868,7 @@ function AdminView({
           ].map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id as any)}
+              onClick={() => handleSelectTab(t.id as any)}
               style={{
                 background: "transparent",
                 border: 0,
@@ -5834,11 +6894,11 @@ function AdminView({
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 16px" }}>
         {tab === "overview" && (
           <AdminOverviewTab
-            onGoToCars={() => setTab("cars")}
-            onGoToCustomers={() => setTab("customers")}
-            onGoToInquiries={() => setTab("inquiries")}
-            onGoToServices={() => setTab("services")}
-            onGoToGallery={() => setTab("gallery")}
+            onGoToCars={() => handleSelectTab("cars")}
+            onGoToCustomers={() => handleSelectTab("customers")}
+            onGoToInquiries={() => handleSelectTab("inquiries")}
+            onGoToServices={() => handleSelectTab("services")}
+            onGoToGallery={() => handleSelectTab("gallery")}
           />
         )}
         {tab === "cars" && <AdminCarsTab />}
@@ -6434,10 +7494,12 @@ function AdminOverviewTab({
           </p>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={onGoToCars} className="btn btn-primary">
-            <Plus size={16} />
-            <span>Add New Car</span>
-          </button>
+          {onGoToCars && (
+            <button onClick={onGoToCars} className="btn btn-primary">
+              <Car size={16} />
+              <span>Cars Inventory ({summary.totalVehicles ?? 0})</span>
+            </button>
+          )}
           {onGoToServices && (
             <button onClick={onGoToServices} className="btn btn-outline">
               <Wrench size={16} />
@@ -6547,6 +7609,11 @@ function AdminCarsTab() {
   const { data: vehicles = [], isLoading } = useAdminVehicles();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [viewingVehicleId, setViewingVehicleId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const hashMatch = window.location.hash.match(/^#admin\/cars-view-(\d+)/);
+    return hashMatch ? parseInt(hashMatch[1], 10) : null;
+  });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -6558,15 +7625,73 @@ function AdminCarsTab() {
   const deleteCar = useDeleteVehicle();
   const updateVehicle = useUpdateVehicle();
 
-  const handleEdit = (v: Vehicle) => {
-    setEditingVehicle(v);
-    setEditorOpen(true);
-  };
-
   const handleAddNew = () => {
     setEditingVehicle(null);
     setEditorOpen(true);
+    window.history.pushState({ modal: "admin-car-editor" }, "", "#admin/cars-new");
   };
+
+  const handleEdit = (v: Vehicle) => {
+    setEditingVehicle(v);
+    setEditorOpen(true);
+    window.history.pushState({ modal: "admin-car-editor", carId: v.id }, "", `#admin/cars-edit-${v.id}`);
+  };
+
+  const handleCloseEditor = () => {
+    setEditorOpen(false);
+    if (window.location.hash.includes("cars-new") || window.location.hash.includes("cars-edit")) {
+      window.history.back();
+    }
+  };
+
+  const handleViewCar = (v: Vehicle) => {
+    setViewingVehicleId(v.id);
+    window.history.pushState({ modal: "admin-car-view", carId: v.id }, "", `#admin/cars-view-${v.id}`);
+  };
+
+  const handleCloseViewCar = () => {
+    setViewingVehicleId(null);
+    if (window.location.hash.includes("cars-view")) {
+      window.history.back();
+    }
+  };
+
+  useEffect(() => {
+    const syncAdminCarsRoute = () => {
+      const h = window.location.hash || "";
+      if (h.includes("cars-new")) {
+        setEditingVehicle(null);
+        setEditorOpen(true);
+      } else {
+        const editMatch = h.match(/^#admin\/cars-edit-(\d+)/);
+        if (editMatch) {
+          const editId = parseInt(editMatch[1], 10);
+          const found = vehicles.find((v) => v.id === editId);
+          if (found) {
+            setEditingVehicle(found);
+            setEditorOpen(true);
+          }
+        } else if (!window.history.state || window.history.state.modal !== "admin-car-editor") {
+          setEditorOpen(false);
+        }
+      }
+
+      const viewMatch = h.match(/^#admin\/cars-view-(\d+)/);
+      if (viewMatch) {
+        setViewingVehicleId(parseInt(viewMatch[1], 10));
+      } else if (!window.history.state || window.history.state.modal !== "admin-car-view") {
+        setViewingVehicleId(null);
+      }
+    };
+
+    window.addEventListener("popstate", syncAdminCarsRoute);
+    window.addEventListener("hashchange", syncAdminCarsRoute);
+    syncAdminCarsRoute();
+    return () => {
+      window.removeEventListener("popstate", syncAdminCarsRoute);
+      window.removeEventListener("hashchange", syncAdminCarsRoute);
+    };
+  }, [vehicles]);
 
   const handleDelete = (id: number, name: string) => {
     if (confirm(`Are you sure you want to delete ${name}?`)) {
@@ -6632,14 +7757,7 @@ function AdminCarsTab() {
         </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
+      <div className="admin-kpi-grid">
         <div
           style={{
             background: "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, var(--bg-surface) 100%)",
@@ -6832,16 +7950,9 @@ function AdminCarsTab() {
           <p style={{ color: "var(--text-muted)", margin: 0 }}>No vehicles match your search and filter criteria.</p>
         </div>
       ) : (
-        <div
-          style={{
-            background: "var(--bg-surface)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border)",
-            overflowX: "auto",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          <table style={{ width: "100%", minWidth: 780, borderCollapse: "collapse", textAlign: "left", fontSize: 14 }}>
+        <div className="admin-table-container">
+          <div className="admin-scroll-hint">↔ Swipe horizontally to view full cars inventory</div>
+          <table className="admin-table-responsive" style={{ minWidth: 780 }}>
             <thead>
               <tr style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
                 <th style={{ padding: "14px 18px" }}>Vehicle & Price</th>
@@ -6858,7 +7969,11 @@ function AdminCarsTab() {
               {filteredVehicles.map((v) => (
                 <tr key={v.id} style={{ borderBottom: "1px solid var(--border)" }}>
                   <td style={{ padding: "14px 18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+                      onClick={() => handleViewCar(v)}
+                      title="Click to preview car details"
+                    >
                       <img
                         src={v.imageUrls[0] || "/images/hero-delivery.webp"}
                         alt={v.model}
@@ -6914,6 +8029,10 @@ function AdminCarsTab() {
                     </select>
                   </td>
                   <td style={{ padding: "14px 18px", textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button onClick={() => handleViewCar(v)} className="btn btn-outline btn-sm" style={{ marginRight: 8 }} title="View details">
+                      <Eye size={14} />
+                      <span>View</span>
+                    </button>
                     <button onClick={() => handleEdit(v)} className="btn btn-glass btn-sm" style={{ marginRight: 8 }}>
                       <Edit3 size={14} />
                       <span>Edit</span>
@@ -6932,11 +8051,18 @@ function AdminCarsTab() {
         </div>
       )}
 
-      
       {editorOpen && (
         <CarEditorModal
           vehicle={editingVehicle}
-          onClose={() => setEditorOpen(false)}
+          onClose={handleCloseEditor}
+        />
+      )}
+
+      {viewingVehicleId && (
+        <VehicleDetailModal
+          id={viewingVehicleId}
+          onClose={handleCloseViewCar}
+          onBookThisCar={() => {}}
         />
       )}
     </div>
@@ -7283,9 +8409,22 @@ function CarEditorModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (vehicle) {
-      updateVehicle.mutate({ id: vehicle.id, input: form }, { onSuccess: onClose });
+      updateVehicle.mutate(
+        { id: vehicle.id, input: form },
+        {
+          onSuccess: onClose,
+          onError: (err: any) => {
+            alert(`Could not update vehicle: ${err?.message || "Please check details and try again."}`);
+          },
+        }
+      );
     } else {
-      createVehicle.mutate(form, { onSuccess: onClose });
+      createVehicle.mutate(form, {
+        onSuccess: onClose,
+        onError: (err: any) => {
+          alert(`Could not save vehicle: ${err?.message || "Please check details and try again."}`);
+        },
+      });
     }
   };
 
@@ -7293,20 +8432,21 @@ function CarEditorModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: 880 }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content car-editor-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3 style={{ color: "#ffffff" }}>
+            <h3 style={{ color: "#ffffff", fontSize: "clamp(16px, 4vw, 20px)" }}>
               {vehicle ? `Edit Vehicle: ${vehicle.make} ${vehicle.model}` : "Add New Vehicle with Auto-Suggestions"}
             </h3>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
               Upload up to 13 photos per car, pick from Showroom Gallery, or use smart auto-fill.
             </span>
           </div>
-          <button onClick={onClose} className="modal-close-btn"><X size={20} /></button>
+          <button onClick={onClose} className="modal-close-btn" type="button"><X size={20} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: 28, maxHeight: "82vh", overflowY: "auto" }}>
+        <form onSubmit={handleSubmit} className="car-editor-form">
+          <div className="car-editor-form-body">
           
           <div
             style={{
@@ -7833,8 +8973,9 @@ function CarEditorModal({
               </div>
             )}
           </div>
+          </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 30 }}>
+          <div className="car-editor-footer">
             <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
             <button
               type="submit"
@@ -8145,50 +9286,35 @@ Location: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad.`
       )}
 
       
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 24 }}>
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+      <div className="admin-kpi-grid">
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Total Tracked Clients</span>
           <div style={{ fontSize: 28, fontWeight: 800, color: "var(--text-main)", marginTop: 4 }}>{totalClients}</div>
         </div>
 
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sold Cars To Dealership</span>
           <div style={{ fontSize: 28, fontWeight: 800, color: "var(--accent-gold)", marginTop: 4 }}>{soldCount}</div>
         </div>
 
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Bought From Dealership</span>
           <div style={{ fontSize: 28, fontWeight: 800, color: "#34d399", marginTop: 4 }}>{boughtCount}</div>
         </div>
 
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Current Prospective Buyers</span>
           <div style={{ fontSize: 28, fontWeight: 800, color: "#38bdf8", marginTop: 4 }}>{currentBuyersCount}</div>
         </div>
 
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Service Tokens Active</span>
           <div style={{ fontSize: 28, fontWeight: 800, color: "var(--primary)", marginTop: 4 }}>{totalTokens}</div>
         </div>
       </div>
 
-      
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-md)",
-          padding: "12px 16px",
-          marginBottom: 20,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4 }}>
+      <div className="admin-toolbar">
+        <div className="admin-chips-scroll">
           {[
             { id: "all", label: `All Clients (${totalClients})` },
             { id: "bought_from_dealership", label: `Bought from Us (${boughtCount})` },
@@ -8199,8 +9325,8 @@ Location: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad.`
             <button
               key={tab.id}
               onClick={() => setSubTab(tab.id as any)}
-              className={subTab === tab.id ? "btn btn-primary btn-sm" : "btn btn-glass btn-sm"}
-              style={{ whiteSpace: "nowrap", fontSize: 12, padding: "6px 12px" }}
+              className={`admin-chip-btn ${subTab === tab.id ? "btn btn-primary btn-sm" : "btn btn-glass btn-sm"}`}
+              style={{ padding: "6px 14px", fontSize: 12 }}
             >
               {tab.label}
             </button>
@@ -8208,15 +9334,15 @@ Location: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad.`
         </div>
 
         {subTab !== "service_slots" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 240, flex: 1, maxWidth: 360 }}>
-            <Search size={15} style={{ color: "var(--text-muted)" }} />
+          <div className="admin-search-wrap">
+            <Search size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
             <input
               type="text"
               placeholder="Search by name, phone, car..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="form-input"
-              style={{ padding: "6px 12px", fontSize: 13 }}
+              style={{ padding: "6px 12px", fontSize: 13, width: "100%" }}
             />
           </div>
         )}
@@ -8236,8 +9362,9 @@ Location: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad.`
               </button>
             </div>
           ) : (
-            <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+            <div className="admin-table-container">
+              <div className="admin-scroll-hint">↔ Swipe horizontally to view full customer details</div>
+              <table className="admin-table-responsive">
                 <thead>
                   <tr style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
                     <th style={{ padding: "12px 16px" }}>Client Name & Contact</th>
@@ -8334,8 +9461,9 @@ Location: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad.`
               </button>
             </div>
           ) : (
-            <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+            <div className="admin-table-container">
+              <div className="admin-scroll-hint">↔ Swipe horizontally to view service tokens</div>
+              <table className="admin-table-responsive">
                 <thead>
                   <tr style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
                     <th style={{ padding: "12px 16px" }}>Service Token ID</th>
@@ -9783,20 +10911,20 @@ function AdminServicesTab() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+      <div className="admin-kpi-grid">
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Total Service Bookings</span>
           <div style={{ fontSize: 26, fontWeight: 800, color: "var(--text-main)", marginTop: 4 }}>{total}</div>
         </div>
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Confirmed / Scheduled</span>
           <div style={{ fontSize: 26, fontWeight: 800, color: "#38bdf8", marginTop: 4 }}>{confirmedCount}</div>
         </div>
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>In Service Bay</span>
           <div style={{ fontSize: 26, fontWeight: 800, color: "#f59e0b", marginTop: 4 }}>{inProgressCount}</div>
         </div>
-        <div style={{ background: "var(--bg-surface)", padding: 18, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Completed</span>
           <div style={{ fontSize: 26, fontWeight: 800, color: "#10b981", marginTop: 4 }}>{completedCount}</div>
         </div>
