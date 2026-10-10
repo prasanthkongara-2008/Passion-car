@@ -249,6 +249,7 @@ function PublicView({
     vehicleId?: number;
     vehicleTitle?: string;
   }>({ open: false, type: "contact" });
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
 
   const [activeGalleryCat, setActiveGalleryCat] = useState("all");
   const [lightboxImg, setLightboxImg] = useState<{ url: string; title: string; caption?: string } | null>(null);
@@ -334,15 +335,9 @@ function PublicView({
             <ul className="nav-menu">
               <li><a href="#home" className="nav-link">Home</a></li>
               <li><a href="#inventory" className="nav-link">Buy Cars</a></li>
-              <li><a href="#gallery" className="nav-link">Gallery</a></li>
               <li><a href="#sell" className="nav-link">Sell Car</a></li>
               <li><a href="#services" className="nav-link">Services</a></li>
-              <li><a href="#blog" className="nav-link">Blog</a></li>
-              <li><a href="#rti" className="nav-link">RTI</a></li>
-              <li><a href="#exchange" className="nav-link">Exchange</a></li>
-              <li><a href="#service" className="nav-link">Service</a></li>
-              <li><a href="#emi-calculator" className="nav-link">EMI Calculator</a></li>
-              <li><a href="#about" className="nav-link">About</a></li>
+              <li><a href="#reviews" className="nav-link">Reviews</a></li>
               <li><a href="#contact" className="nav-link">Contact</a></li>
               <li>
                 {customerUser ? (
@@ -446,11 +441,12 @@ function PublicView({
             
             <a
               href={`tel:+${rawPhone}`}
-              className="btn btn-outline btn-sm"
+              className="btn btn-outline btn-sm nav-btn-desktop"
               title={`Call Passion Car at ${phone}`}
             >
               <Phone size={14} className="text-red-500" />
-              <span>{phone}</span>
+              <span className="nav-btn-phone-text">{phone}</span>
+              <span className="nav-btn-phone-short">Call</span>
             </a>
 
             
@@ -458,7 +454,7 @@ function PublicView({
               href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20your%20verified%20cars.`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm nav-btn-desktop"
             >
               <MessageSquare size={14} />
               <span>WhatsApp</span>
@@ -470,7 +466,8 @@ function PublicView({
               className="mobile-menu-btn"
               aria-label="Toggle navigation menu"
             >
-              <Menu size={20} />
+              <Menu size={18} />
+              <span>Menu</span>
             </button>
           </div>
         </div>
@@ -498,6 +495,69 @@ function PublicView({
               </button>
             </div>
 
+            <div style={{ marginBottom: 16, padding: 12, background: "var(--bg-card)", borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+                Direct Forms & Booking
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setInquiryModal({ open: true, type: "test_drive" });
+                  }}
+                  className="btn btn-glass btn-sm"
+                  style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
+                >
+                  <Calendar size={14} className="text-red-500" />
+                  <span>Test Drive</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setServiceModalOpen(true);
+                  }}
+                  className="btn btn-glass btn-sm"
+                  style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
+                >
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span>Book Service</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setInquiryModal({ open: true, type: "sell" });
+                  }}
+                  className="btn btn-glass btn-sm"
+                  style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
+                >
+                  <TrendingUp size={14} className="text-emerald-500" />
+                  <span>Sell Car</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setInquiryModal({ open: true, type: "exchange" });
+                  }}
+                  className="btn btn-glass btn-sm"
+                  style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
+                >
+                  <RefreshCw size={14} className="text-sky-500" />
+                  <span>Exchange</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setInquiryModal({ open: true, type: "contact" });
+                  }}
+                  className="btn btn-glass btn-sm"
+                  style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px", gridColumn: "span 2" }}
+                >
+                  <ShieldCheck size={14} className="text-red-500" />
+                  <span>RTI & RTO Legal Assistance</span>
+                </button>
+              </div>
+            </div>
+
             <div className="mobile-drawer-nav">
               <a href="#home" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
                 <Car size={16} /> Home
@@ -508,24 +568,52 @@ function PublicView({
               <a href="#gallery" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
                 <ImageIcon size={16} /> Showroom Gallery
               </a>
-              <a href="#sell" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
-                <TrendingUp size={16} /> Sell Car
-              </a>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setInquiryModal({ open: true, type: "sell" });
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <TrendingUp size={16} /> Sell Car Form
+              </button>
               <a href="#services" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
                 <Award size={16} /> Services
               </a>
               <a href="#blog" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
                 <FileText size={16} /> Blog
               </a>
-              <a href="#rti" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
-                <ShieldCheck size={16} /> RTI / RC Transfer
-              </a>
-              <a href="#exchange" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
-                <RefreshCw size={16} /> Exchange Car
-              </a>
-              <a href="#service" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
-                <Sparkles size={16} /> Car Service Booking
-              </a>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setInquiryModal({ open: true, type: "contact" });
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <ShieldCheck size={16} /> RTI / RC Transfer Form
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setInquiryModal({ open: true, type: "exchange" });
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <RefreshCw size={16} /> Exchange Car Form
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setServiceModalOpen(true);
+                }}
+                className="mobile-nav-item"
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+              >
+                <Sparkles size={16} /> Car Service Booking Form
+              </button>
               <a href="#emi-calculator" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
                 <Calculator size={16} /> EMI Calculator
               </a>
@@ -981,9 +1069,21 @@ function PublicView({
                 <span>Request Free Car Valuation</span>
                 <ArrowRight size={18} />
               </button>
+
+              <div className="mobile-only-action" style={{ marginTop: 20 }}>
+                <button
+                  onClick={() => setInquiryModal({ open: true, type: "sell" })}
+                  className="btn btn-glass btn-sm"
+                  style={{ width: "100%", justifyContent: "center" }}
+                >
+                  <TrendingUp size={16} className="text-emerald-500" />
+                  <span>Open Mobile Valuation Form</span>
+                </button>
+              </div>
             </div>
 
             <div
+              className="desktop-only-form"
               style={{
                 background: "var(--bg-surface)",
                 border: "1px solid var(--border)",
@@ -1576,6 +1676,21 @@ function PublicView({
       )}
 
       
+      {serviceModalOpen && (
+        <ServiceBookingModal onClose={() => setServiceModalOpen(false)} />
+      )}
+
+      <a
+        href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20your%20verified%20cars.`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="desktop-floating-whatsapp"
+        title="Chat with Passion Car on WhatsApp"
+      >
+        <MessageSquare size={20} fill="#ffffff" color="#ffffff" />
+        <span>Chat on WhatsApp</span>
+      </a>
+
       <MobileBottomBar
         onBookTestDrive={() => setInquiryModal({ open: true, type: "test_drive" })}
         phone={phone}
@@ -1832,6 +1947,7 @@ Book a premium detailing or periodic maintenance session with Passion Car's cert
 }
 
 function RtiSection() {
+  const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -1944,6 +2060,33 @@ function RtiSection() {
           </div>
 
           <div
+            className="mobile-only-action"
+            style={{
+              background: "var(--bg-dark)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              padding: 24,
+              textAlign: "center",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <h3 style={{ fontSize: 18, color: "var(--text-main)" }}>Request RTO / RC Assistance</h3>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+              Ownership transfer, HP removal, NOC, and RTI insurance advisory.
+            </p>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="btn btn-primary"
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              <FileText size={16} />
+              <span>Open RTO Assistance Form</span>
+            </button>
+          </div>
+
+          <div
+            className="desktop-only-form"
             style={{
               background: "var(--bg-dark)",
               border: "1px solid var(--border)",
@@ -2053,11 +2196,117 @@ function RtiSection() {
           </div>
         </div>
       </div>
+
+      {modalOpen && (
+        <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
+          <div className="modal-content" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <ShieldCheck size={20} className="text-red-500" />
+                <h3 style={{ color: "var(--text-main)", margin: 0 }}>RTO & RC Legal Assistance</h3>
+              </div>
+              <button onClick={() => setModalOpen(false)} className="modal-close-btn" aria-label="Close modal">
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: 24 }}>
+              {submitted ? (
+                <div style={{ textAlign: "center", padding: 20 }}>
+                  <CheckCircle2 size={36} className="text-emerald-500" style={{ margin: "0 auto 12px" }} />
+                  <h4 style={{ color: "var(--text-main)", fontSize: 18 }}>Request Received</h4>
+                  <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6 }}>
+                    Our RTO documentation specialist will call you shortly on {form.phone}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setModalOpen(false);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ marginTop: 16 }}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="form-group">
+                    <label className="form-label">Service Type *</label>
+                    <select
+                      className="form-select"
+                      value={form.serviceType}
+                      onChange={(e) => setForm({ ...form, serviceType: e.target.value })}
+                    >
+                      <option value="RC Ownership Transfer">RC Ownership Transfer</option>
+                      <option value="Bank Hypothecation (HP) Removal">Bank Hypothecation (HP) Removal</option>
+                      <option value="Interstate NOC & Re-registration">Interstate NOC & Re-registration</option>
+                      <option value="RTI (Return to Invoice) Advisory">RTI (Return to Invoice) Advisory</option>
+                      <option value="Duplicate RC & Fitness Certificate">Duplicate RC & Fitness Certificate</option>
+                    </select>
+                  </div>
+
+                  <div className="form-grid-2col">
+                    <div className="form-group">
+                      <label className="form-label">Your Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rahul Sharma"
+                        className="form-input"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Mobile Number (10 Digits) *</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        required
+                        placeholder="10-digit mobile number"
+                        className="form-input"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Vehicle Registration Number (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TS 09 EA 1234"
+                      className="form-input"
+                      value={form.vehicleNo}
+                      onChange={(e) => setForm({ ...form, vehicleNo: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={createInquiry.isPending}
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+                  >
+                    {createInquiry.isPending ? "Connecting..." : "Request RTO Support"}
+                    <ArrowRight size={18} />
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
 function ExchangeSection() {
+  const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     currBrand: "",
     currModel: "",
@@ -2200,6 +2449,33 @@ function ExchangeSection() {
           </div>
 
           <div
+            className="mobile-only-action"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              padding: 24,
+              textAlign: "center",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <h3 style={{ fontSize: 18, color: "var(--text-main)" }}>Exchange & Upgrade Your Car</h3>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+              Get instant trade-in value adjustment and upgrade bonus for your current car.
+            </p>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="btn btn-primary"
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              <RefreshCw size={16} />
+              <span>Open Car Exchange Form</span>
+            </button>
+          </div>
+
+          <div
+            className="desktop-only-form"
             style={{
               background: "var(--bg-card)",
               border: "1px solid var(--border)",
@@ -2341,11 +2617,151 @@ function ExchangeSection() {
           </div>
         </div>
       </div>
+
+      {modalOpen && (
+        <div className="modal-backdrop" onClick={() => setModalOpen(false)}>
+          <div className="modal-content" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <RefreshCw size={20} className="text-red-500" />
+                <h3 style={{ color: "var(--text-main)", margin: 0 }}>Car Exchange & Trade-In</h3>
+              </div>
+              <button onClick={() => setModalOpen(false)} className="modal-close-btn" aria-label="Close modal">
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: 24 }}>
+              {submitted ? (
+                <div style={{ textAlign: "center", padding: 20 }}>
+                  <CheckCircle2 size={36} className="text-emerald-500" style={{ margin: "0 auto 12px" }} />
+                  <h4 style={{ color: "var(--text-main)", fontSize: 18 }}>Exchange Request Received</h4>
+                  <p style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 6 }}>
+                    Our valuation specialist will call you shortly on {form.phone}.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setModalOpen(false);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ marginTop: 16 }}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="form-grid-2col">
+                    <div className="form-group">
+                      <label className="form-label">Current Car Brand *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Honda, Hyundai, BMW"
+                        className="form-input"
+                        value={form.currBrand}
+                        onChange={(e) => setForm({ ...form, currBrand: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Model & Variant *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. City VX, Creta SX"
+                        className="form-input"
+                        value={form.currModel}
+                        onChange={(e) => setForm({ ...form, currModel: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-grid-2col">
+                    <div className="form-group">
+                      <label className="form-label">Manufacturing Year *</label>
+                      <select
+                        className="form-select"
+                        value={form.currYear}
+                        onChange={(e) => setForm({ ...form, currYear: e.target.value })}
+                      >
+                        {["2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "Older"].map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Kilometers Driven</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 45,000 km"
+                        className="form-input"
+                        value={form.currKm}
+                        onChange={(e) => setForm({ ...form, currKm: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Target Upgrade Car</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mercedes C-Class, BMW 3 Series"
+                      className="form-input"
+                      value={form.upgradeChoice}
+                      onChange={(e) => setForm({ ...form, upgradeChoice: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-grid-2col">
+                    <div className="form-group">
+                      <label className="form-label">Your Name *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Full Name"
+                        className="form-input"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Mobile Number (10 Digits) *</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        required
+                        placeholder="10-digit mobile number"
+                        className="form-input"
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={createInquiry.isPending}
+                    className="btn btn-primary btn-lg"
+                    style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+                  >
+                    {createInquiry.isPending ? "Calculating..." : "Get Instant Exchange Quote"}
+                    <ArrowRight size={18} />
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
 function ServiceBookingSection() {
+  const [modalOpen, setModalOpen] = useState(false);
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [form, setForm] = useState({
     name: "",
@@ -2472,8 +2888,12 @@ function ServiceBookingSection() {
                     type="button"
                     onClick={() => {
                       setForm((prev) => ({ ...prev, servicePackage: s.title }));
-                      const formEl = document.getElementById("service-booking-form");
-                      formEl?.scrollIntoView({ behavior: "smooth" });
+                      if (window.innerWidth <= 768) {
+                        setModalOpen(true);
+                      } else {
+                        const formEl = document.getElementById("service-booking-form");
+                        formEl?.scrollIntoView({ behavior: "smooth" });
+                      }
                     }}
                     style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
                   >
@@ -2484,9 +2904,35 @@ function ServiceBookingSection() {
             ))}
           </div>
 
-          
+          <div
+            className="mobile-only-action"
+            style={{
+              background: "var(--bg-dark)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+              padding: 24,
+              textAlign: "center",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <h3 style={{ fontSize: 18, color: "var(--text-main)" }}>Book Certified Car Service Slot</h3>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+              Receive an official digital entry pass for priority bay entry and zero wait time.
+            </p>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="btn btn-primary"
+              style={{ width: "100%", justifyContent: "center" }}
+            >
+              <Ticket size={16} />
+              <span>Open Service Booking Form</span>
+            </button>
+          </div>
+
           <div
             id="service-booking-form"
+            className="desktop-only-form"
             style={{
               background: "var(--bg-dark)",
               border: "1px solid var(--border)",
@@ -2734,6 +3180,13 @@ function ServiceBookingSection() {
           </div>
         </div>
       </div>
+
+      {modalOpen && (
+        <ServiceBookingModal
+          onClose={() => setModalOpen(false)}
+          initialPackage={form.servicePackage}
+        />
+      )}
     </section>
   );
 }
@@ -4503,6 +4956,328 @@ function SellCarQuickForm({ onSuccess }: { onSuccess: () => void }) {
         </button>
       </div>
     </form>
+  );
+}
+
+function ServiceBookingModal({
+  onClose,
+  initialPackage,
+}: {
+  onClose: () => void;
+  initialPackage?: string;
+}) {
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    carDetails: "",
+    servicePackage: initialPackage || "Periodic Comprehensive Service",
+    date: todayStr,
+    timeSlot: "09:30 AM - 11:00 AM (Morning Slot)",
+    notes: "",
+  });
+
+  const [bookingPass, setBookingPass] = useState<{
+    token: string;
+    booking: ServiceBooking;
+  } | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
+  const bookServiceSlot = useBookServiceSlot();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.phone.trim() || !form.carDetails.trim() || !form.date || !form.timeSlot) {
+      setBookingError("Please provide your name, contact number, vehicle details, date, and preferred time slot.");
+      return;
+    }
+    if (form.phone.trim().length < 10) {
+      setBookingError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    setBookingError(null);
+
+    bookServiceSlot.mutate(
+      {
+        customerName: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || undefined,
+        carDetails: form.carDetails.trim(),
+        servicePackage: form.servicePackage,
+        date: form.date,
+        timeSlot: form.timeSlot,
+        notes: form.notes.trim() || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          setBookingError(null);
+          setBookingPass({
+            token: data.token,
+            booking: data.booking,
+          });
+        },
+        onError: (err: any) => {
+          setBookingError(err?.message || "Could not book service slot. Please verify your phone number and details.");
+        },
+      }
+    );
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!bookingPass) return;
+    const msg = encodeURIComponent(
+      `*PASSION CAR OFFICIAL SERVICE PASS*\n` +
+      `🎫 *Token ID:* ${bookingPass.token}\n` +
+      `👤 *Customer:* ${bookingPass.booking.customerName}\n` +
+      `📞 *Phone:* ${bookingPass.booking.phone}\n` +
+      `🚗 *Vehicle:* ${bookingPass.booking.carDetails}\n` +
+      `🔧 *Service:* ${bookingPass.booking.servicePackage}\n` +
+      `📅 *Date:* ${bookingPass.booking.date}\n` +
+      `⏰ *Time Slot:* ${bookingPass.booking.timeSlot}\n` +
+      `📍 *Location:* Passion Car, Plot No 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad\n` +
+      `Status: Confirmed Slot`
+    );
+    window.open(`https://wa.me/918885858380?text=${msg}`, "_blank");
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 600 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Award size={20} className="text-red-500" />
+            <h3 style={{ color: "var(--text-main)", margin: 0 }}>Book Certified Service Slot</h3>
+          </div>
+          <button onClick={onClose} className="modal-close-btn" aria-label="Close modal">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: 24 }}>
+          {bookingPass ? (
+            <div
+              style={{
+                background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%)",
+                border: "1px solid rgba(16, 185, 129, 0.4)",
+                borderRadius: "var(--radius-lg)",
+                padding: 24,
+                position: "relative",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <div>
+                  <span className="badge badge-gold" style={{ marginBottom: 6, display: "inline-flex" }}>
+                    <Ticket size={12} />
+                    <span>PASSION CAR OFFICIAL PASS</span>
+                  </span>
+                  <h3 style={{ fontSize: 20, color: "var(--text-main)", marginTop: 4 }}>Service Slot Confirmed</h3>
+                </div>
+                <div
+                  style={{
+                    background: "rgba(16, 185, 129, 0.2)",
+                    border: "1px solid #10b981",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    textAlign: "center",
+                  }}
+                >
+                  <span style={{ fontSize: 10, color: "#a7f3d0", display: "block", textTransform: "uppercase" }}>Token ID</span>
+                  <strong style={{ fontSize: 16, color: "#34d399", fontFamily: "var(--font-mono)" }}>
+                    #{bookingPass.token}
+                  </strong>
+                </div>
+              </div>
+
+              <div
+                className="form-grid-2col"
+                style={{
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: 14,
+                  marginBottom: 16,
+                  fontSize: 12,
+                }}
+              >
+                <div>
+                  <span style={{ color: "var(--text-dim)", display: "block" }}>Customer Name</span>
+                  <strong style={{ color: "var(--text-main)" }}>{bookingPass.booking.customerName}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-dim)", display: "block" }}>Mobile Contact</span>
+                  <strong style={{ color: "#38bdf8" }}>{bookingPass.booking.phone}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-dim)", display: "block" }}>Vehicle</span>
+                  <strong style={{ color: "var(--text-main)" }}>{bookingPass.booking.carDetails}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-dim)", display: "block" }}>Package</span>
+                  <strong style={{ color: "var(--accent-gold)" }}>{bookingPass.booking.servicePackage}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-dim)", display: "block" }}>Appointment Date</span>
+                  <strong style={{ color: "var(--text-main)" }}>{bookingPass.booking.date}</strong>
+                </div>
+                <div>
+                  <span style={{ color: "var(--text-dim)", display: "block" }}>Time Slot</span>
+                  <strong style={{ color: "#10b981" }}>{bookingPass.booking.timeSlot}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={handleShareWhatsApp}
+                  className="btn btn-primary"
+                  style={{ flex: 1, minWidth: 140, justifyContent: "center" }}
+                >
+                  <Share2 size={15} />
+                  <span>Share on WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn btn-outline"
+                  style={{ flex: 1, minWidth: 140, justifyContent: "center" }}
+                >
+                  <span>Done</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div className="form-group">
+                <label className="form-label">Service Package *</label>
+                <select
+                  className="form-select"
+                  value={form.servicePackage}
+                  onChange={(e) => setForm({ ...form, servicePackage: e.target.value })}
+                >
+                  <option value="Periodic Comprehensive Service">Periodic Comprehensive Service</option>
+                  <option value="Brakes & Suspension Overhaul">Brakes & Suspension Overhaul</option>
+                  <option value="AC & Climate System Service">AC & Climate System Service</option>
+                  <option value="Computer OBD-II Diagnostics">Computer OBD-II Diagnostics</option>
+                  <option value="150-Point Pre-Purchase Inspection">150-Point Pre-Purchase Inspection</option>
+                  <option value="Ceramic Coating & Detailing">Ceramic Coating & Detailing</option>
+                  <option value="General Checkup & Oil Topup">General Checkup & Oil Topup</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Car Make, Model & Reg. Number *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 2021 BMW 320d (TS 09 FL 7821)"
+                  className="form-input"
+                  value={form.carDetails}
+                  onChange={(e) => setForm({ ...form, carDetails: e.target.value })}
+                />
+              </div>
+
+              <div className="form-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Your Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Full Name"
+                    className="form-input"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Mobile Number (10 Digits) *</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    required
+                    placeholder="10-digit mobile number"
+                    className="form-input"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: cleanMobileNumber(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Preferred Date *</label>
+                  <input
+                    type="date"
+                    required
+                    min={todayStr}
+                    className="form-input"
+                    value={form.date}
+                    onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Select Time Slot *</label>
+                  <select
+                    className="form-select"
+                    value={form.timeSlot}
+                    onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
+                  >
+                    <option value="09:30 AM - 11:00 AM (Morning Slot)">09:30 AM - 11:00 AM (Morning Slot)</option>
+                    <option value="11:00 AM - 12:30 PM (Mid-Day Slot)">11:00 AM - 12:30 PM (Mid-Day Slot)</option>
+                    <option value="02:00 PM - 03:30 PM (Afternoon Slot)">02:00 PM - 03:30 PM (Afternoon Slot)</option>
+                    <option value="03:30 PM - 05:00 PM (Late Afternoon Slot)">03:30 PM - 05:00 PM (Late Afternoon Slot)</option>
+                    <option value="05:00 PM - 06:30 PM (Evening Slot)">05:00 PM - 06:30 PM (Evening Slot)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Special Requests / Complaints (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. AC noise, brake pad check"
+                  className="form-input"
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
+              </div>
+
+              {bookingError && (
+                <div
+                  style={{
+                    background: "rgba(239, 68, 68, 0.12)",
+                    border: "1px solid #ef4444",
+                    color: "#ef4444",
+                    padding: "10px 14px",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Info size={15} />
+                  <span>{bookingError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={bookServiceSlot.isPending}
+                className="btn btn-primary btn-lg"
+                style={{ width: "100%", justifyContent: "center", marginTop: 4 }}
+              >
+                {bookServiceSlot.isPending ? "Confirming Slot..." : "Confirm Booking & Generate Official Pass"}
+                <ArrowRight size={18} />
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
