@@ -815,6 +815,28 @@ function PublicView({
                   <span>My Bookings</span>
                 </button>
               </li>
+              {onGoToAdmin && (
+                <li>
+                  <button
+                    onClick={onGoToAdmin}
+                    className="nav-link"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      font: "inherit",
+                      fontWeight: 600,
+                    }}
+                    title="Dealer Administrator Login & Controls"
+                  >
+                    <Shield size={14} className="text-red-500" />
+                    <span>Admin</span>
+                  </button>
+                </li>
+              )}
               <li>
                 {customerUser ? (
                   <button
@@ -1367,6 +1389,27 @@ function PublicView({
             </div>
 
             <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+              {onGoToAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onGoToAdmin();
+                  }}
+                  className="btn btn-outline btn-sm"
+                  style={{
+                    width: "100%",
+                    justifyContent: "center",
+                    gap: 8,
+                    color: "var(--primary)",
+                    borderColor: "rgba(239, 68, 68, 0.4)",
+                    fontWeight: 700,
+                  }}
+                >
+                  <Shield size={15} />
+                  <span>Admin Portal Login</span>
+                </button>
+              )}
               <button
                 onClick={toggleTheme}
                 className="btn btn-outline btn-sm"
@@ -2421,38 +2464,97 @@ function PublicView({
               </div>
             </div>
 
-            <div className="footer-nav-row">
-              {[
-                { href: "#home", label: "Home" },
-                { href: "#inventory", label: "Buy Cars" },
-                { href: "#gallery", label: "Gallery" },
-                { href: "#sell", label: "Sell Car" },
-                { href: "#services", label: "Services" },
-                { href: "#blog", label: "Blog" },
-                { href: "#emi-calculator", label: "EMI Calculator" },
-                { href: "#about", label: "About" },
-                { href: "#contact", label: "Contact" },
-              ].map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="footer-nav-link"
-                  style={{
-                    color: theme === "light" ? "#475569" : "#f1f5f9",
-                    textDecoration: "none",
-                    fontWeight: 500,
-                    transition: "color 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#ef4444";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
-                  }}
-                >
-                  {link.label}
-                </a>
-              ))}
+            <div className="footer-nav-block">
+              <div className="footer-nav-row">
+                {[
+                  { href: "#home", label: "Home" },
+                  { href: "#inventory", label: "Buy Cars" },
+                  { href: "#gallery", label: "Gallery" },
+                  { href: "#sell", label: "Sell Car" },
+                  { href: "#services", label: "Services" },
+                  { href: "#reviews", label: "Reviews" },
+                  { href: "#blog", label: "Blog" },
+                  { href: "#rti", label: "RTI" },
+                  { href: "#exchange", label: "Exchange" },
+                ].map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="footer-nav-link"
+                    style={{
+                      color: theme === "light" ? "#475569" : "#f1f5f9",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      transition: "color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#ef4444";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+              <div className="footer-nav-row">
+                {[
+                  { href: "#service", label: "Service" },
+                  { href: "#emi-calculator", label: "EMI Calculator" },
+                  { href: "#about", label: "About" },
+                  { href: "#contact", label: "Contact" },
+                ].map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="footer-nav-link"
+                    style={{
+                      color: theme === "light" ? "#475569" : "#f1f5f9",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      transition: "color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#ef4444";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
+                    }}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+                {onGoToAdmin && (
+                  <button
+                    type="button"
+                    onClick={onGoToAdmin}
+                    className="footer-nav-link"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      font: "inherit",
+                      padding: 0,
+                      color: theme === "light" ? "#475569" : "#f1f5f9",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      transition: "color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#ef4444";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
+                    }}
+                  >
+                    <Shield size={13} className="text-red-500" />
+                    <span>Admin Portal</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

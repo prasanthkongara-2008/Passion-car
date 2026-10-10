@@ -2407,7 +2407,14 @@ body.light-theme .footer-bottom-bar a,
   color: #64748b;
 }
 
+.footer-nav-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 @media (min-width: 1181px) {
+  .footer-nav-block,
   .footer-nav-row {
     max-width: calc(100% - 250px);
   }
