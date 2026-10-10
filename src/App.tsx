@@ -1966,9 +1966,22 @@ function PublicView({
                   href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20visiting%20your%20showroom.`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "12px 24px",
+                    borderRadius: "var(--radius-full)",
+                    background: "#25d366",
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    textDecoration: "none",
+                    boxShadow: "0 6px 18px rgba(37, 211, 102, 0.35)",
+                  }}
                 >
-                  <MessageSquare size={16} />
+                  <MessageSquare size={18} fill="#ffffff" color="#ffffff" />
                   <span>Chat on WhatsApp</span>
                 </a>
 
@@ -1977,6 +1990,15 @@ function PublicView({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-outline"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "12px 24px",
+                    borderRadius: "var(--radius-full)",
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
                 >
                   <MapPin size={16} />
                   <span>Open in Google Maps</span>
@@ -1984,53 +2006,53 @@ function PublicView({
                 </a>
               </div>
 
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
                 <a
                   href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-outline"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 8,
-                    padding: "10px 22px",
+                    padding: "12px 24px",
                     borderRadius: "var(--radius-full)",
-                    borderColor: "rgba(225, 48, 108, 0.5)",
-                    background: "rgba(225, 48, 108, 0.12)",
-                    color: "var(--text-main)",
-                    fontWeight: 600,
+                    background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
+                    color: "#ffffff",
+                    fontWeight: 700,
                     fontSize: 14,
                     textDecoration: "none",
+                    boxShadow: "0 6px 18px rgba(220, 39, 67, 0.35)",
                   }}
                   title="Follow Passion Car on Instagram"
                 >
-                  <InstagramIcon size={18} color="#E1306C" />
-                  <span>Instagram</span>
+                  <InstagramIcon size={18} color="#ffffff" />
+                  <span>Follow on Instagram</span>
                 </a>
 
                 <a
                   href="https://www.youtube.com/@passioncars_madhapur"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-outline"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     gap: 8,
-                    padding: "10px 22px",
+                    padding: "12px 24px",
                     borderRadius: "var(--radius-full)",
-                    borderColor: "rgba(255, 0, 0, 0.5)",
-                    background: "rgba(255, 0, 0, 0.12)",
-                    color: "var(--text-main)",
-                    fontWeight: 600,
+                    background: "#FF0000",
+                    color: "#ffffff",
+                    fontWeight: 700,
                     fontSize: 14,
                     textDecoration: "none",
+                    boxShadow: "0 6px 18px rgba(255, 0, 0, 0.35)",
                   }}
                   title="Subscribe to Passion Car YouTube Channel"
                 >
-                  <YoutubeIcon size={18} color="#FF0000" />
-                  <span>YouTube</span>
+                  <YoutubeIcon size={18} color="#ffffff" />
+                  <span>Watch on YouTube</span>
                 </a>
               </div>
             </div>
