@@ -275,7 +275,121 @@ function PublicView({
     }
   };
 
+  const [inquiryModal, setInquiryModal] = useState<{
+    open: boolean;
+    type: "buy" | "sell" | "contact" | "exchange" | "test_drive";
+    vehicleId?: number;
+    vehicleTitle?: string;
+  }>({ open: false, type: "contact" });
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [activeGalleryCat, setActiveGalleryCat] = useState("all");
+  const [lightboxImg, setLightboxImg] = useState<{ url: string; title: string; caption?: string } | null>(null);
+  const [galleryDisplayCount, setGalleryDisplayCount] = useState(12);
+  const [customerAuthModal, setCustomerAuthModal] = useState(false);
+  const [customerUser, setCustomerUser] = useState<{ id: string; name: string; phone: string; email: string; photo: string } | null>(() => {
+    try {
+      const s = localStorage.getItem("passioncar_customer_session");
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [customerProfileModal, setCustomerProfileModal] = useState(false);
+  const [activeGuideModal, setActiveGuideModal] = useState<{ title: string; content: string; date: string } | null>(null);
+
+  const handleOpenMenu = () => {
+    setMobileMenuOpen(true);
+    window.history.pushState({ modal: "menu" }, "", "#menu");
+  };
+
+  const handleCloseMenu = () => {
+    setMobileMenuOpen(false);
+    if (window.history.state?.modal === "menu") {
+      window.history.back();
+    }
+  };
+
+  const handleOpenInquiry = (opts: {
+    type: "buy" | "sell" | "contact" | "exchange" | "test_drive";
+    vehicleId?: number;
+    vehicleTitle?: string;
+  }) => {
+    setInquiryModal({ open: true, ...opts });
+    window.history.pushState({ modal: "inquiry", ...opts }, "", `#inquiry-${opts.type}`);
+  };
+
+  const handleCloseInquiry = () => {
+    setInquiryModal((prev) => ({ ...prev, open: false }));
+    if (window.history.state?.modal === "inquiry") {
+      window.history.back();
+    }
+  };
+
+  const handleOpenService = () => {
+    setServiceModalOpen(true);
+    window.history.pushState({ modal: "service" }, "", "#service-book");
+  };
+
+  const handleCloseService = () => {
+    setServiceModalOpen(false);
+    if (window.history.state?.modal === "service") {
+      window.history.back();
+    }
+  };
+
+  const handleOpenLightbox = (img: { url: string; title: string; caption?: string }) => {
+    setLightboxImg(img);
+    window.history.pushState({ modal: "lightbox" }, "", "#photo");
+  };
+
+  const handleCloseLightbox = () => {
+    setLightboxImg(null);
+    if (window.history.state?.modal === "lightbox") {
+      window.history.back();
+    }
+  };
+
+  const handleOpenCustomerAuth = () => {
+    setCustomerAuthModal(true);
+    window.history.pushState({ modal: "auth" }, "", "#signin");
+  };
+
+  const handleCloseCustomerAuth = () => {
+    setCustomerAuthModal(false);
+    if (window.history.state?.modal === "auth") {
+      window.history.back();
+    }
+  };
+
+  const handleOpenCustomerProfile = () => {
+    setCustomerProfileModal(true);
+    window.history.pushState({ modal: "profile" }, "", "#profile");
+  };
+
+  const handleCloseCustomerProfile = () => {
+    setCustomerProfileModal(false);
+    if (window.history.state?.modal === "profile") {
+      window.history.back();
+    }
+  };
+
+  const handleOpenGuide = (guide: { title: string; content: string; date: string }) => {
+    setActiveGuideModal(guide);
+    window.history.pushState({ modal: "guide" }, "", "#guide");
+  };
+
+  const handleCloseGuide = () => {
+    setActiveGuideModal(null);
+    if (window.history.state?.modal === "guide") {
+      window.history.back();
+    }
+  };
+
   useEffect(() => {
+    if (typeof window !== "undefined" && !window.history.state) {
+      window.history.replaceState({ page: "home" }, "", window.location.href);
+    }
+
     const handlePopState = (e: PopStateEvent) => {
       const match = window.location.pathname.match(/^\/car\/(\d+)/);
       if (match) {
@@ -301,34 +415,20 @@ function PublicView({
       if (!e.state || e.state.modal !== "lightbox") {
         setLightboxImg(null);
       }
+      if (!e.state || e.state.modal !== "auth") {
+        setCustomerAuthModal(false);
+      }
+      if (!e.state || e.state.modal !== "profile") {
+        setCustomerProfileModal(false);
+      }
+      if (!e.state || e.state.modal !== "guide") {
+        setActiveGuideModal(null);
+      }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-
-  const [inquiryModal, setInquiryModal] = useState<{
-    open: boolean;
-    type: "buy" | "sell" | "contact" | "exchange" | "test_drive";
-    vehicleId?: number;
-    vehicleTitle?: string;
-  }>({ open: false, type: "contact" });
-  const [serviceModalOpen, setServiceModalOpen] = useState(false);
-
-  const [activeGalleryCat, setActiveGalleryCat] = useState("all");
-  const [lightboxImg, setLightboxImg] = useState<{ url: string; title: string; caption?: string } | null>(null);
-  const [galleryDisplayCount, setGalleryDisplayCount] = useState(12);
-  const [customerAuthModal, setCustomerAuthModal] = useState(false);
-  const [customerUser, setCustomerUser] = useState<{ id: string; name: string; phone: string; email: string; photo: string } | null>(() => {
-    try {
-      const s = localStorage.getItem("passioncar_customer_session");
-      return s ? JSON.parse(s) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [customerProfileModal, setCustomerProfileModal] = useState(false);
-  const [activeGuideModal, setActiveGuideModal] = useState<{ title: string; content: string; date: string } | null>(null);
 
   const heroPhotos = useMemo(
     () => [
@@ -411,7 +511,7 @@ function PublicView({
               <li>
                 {customerUser ? (
                   <button
-                    onClick={() => setCustomerProfileModal(true)}
+                    onClick={handleOpenCustomerProfile}
                     className="nav-link"
                     style={{
                       background: "rgba(239, 68, 68, 0.1)",
@@ -455,7 +555,7 @@ function PublicView({
                   </button>
                 ) : (
                   <button
-                    onClick={() => setCustomerAuthModal(true)}
+                    onClick={handleOpenCustomerAuth}
                     className="nav-link"
                     style={{
                       background: "transparent",
@@ -532,7 +632,7 @@ function PublicView({
 
             
             <button
-              onClick={() => setMobileMenuOpen(true)}
+              onClick={handleOpenMenu}
               className="mobile-menu-btn"
               aria-label="Toggle navigation menu"
             >
@@ -543,9 +643,8 @@ function PublicView({
         </div>
       </header>
 
-      
       {mobileMenuOpen && (
-        <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
+        <div className="mobile-drawer-backdrop" onClick={handleCloseMenu}>
           <div className="mobile-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-drawer-header">
               <div className="brand-logo">
@@ -557,7 +656,7 @@ function PublicView({
                 </div>
               </div>
               <button
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={handleCloseMenu}
                 className="modal-close-btn"
                 aria-label="Close navigation menu"
               >
@@ -572,8 +671,8 @@ function PublicView({
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setInquiryModal({ open: true, type: "test_drive" });
+                    handleCloseMenu();
+                    handleOpenInquiry({ type: "test_drive" });
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -583,8 +682,8 @@ function PublicView({
                 </button>
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setServiceModalOpen(true);
+                    handleCloseMenu();
+                    handleOpenService();
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -594,8 +693,8 @@ function PublicView({
                 </button>
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setInquiryModal({ open: true, type: "sell" });
+                    handleCloseMenu();
+                    handleOpenInquiry({ type: "sell" });
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -605,8 +704,8 @@ function PublicView({
                 </button>
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setInquiryModal({ open: true, type: "exchange" });
+                    handleCloseMenu();
+                    handleOpenInquiry({ type: "exchange" });
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px" }}
@@ -616,8 +715,8 @@ function PublicView({
                 </button>
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setInquiryModal({ open: true, type: "contact" });
+                    handleCloseMenu();
+                    handleOpenInquiry({ type: "contact" });
                   }}
                   className="btn btn-glass btn-sm"
                   style={{ justifyContent: "flex-start", fontSize: 12, padding: "8px 10px", gridColumn: "span 2" }}
@@ -629,35 +728,35 @@ function PublicView({
             </div>
 
             <div className="mobile-drawer-nav">
-              <a href="#home" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#home" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Car size={16} /> Home
               </a>
-              <a href="#inventory" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#inventory" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Search size={16} /> Buy Cars
               </a>
-              <a href="#gallery" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#gallery" onClick={handleCloseMenu} className="mobile-nav-item">
                 <ImageIcon size={16} /> Showroom Gallery
               </a>
               <button
                 onClick={() => {
-                  setMobileMenuOpen(false);
-                  setInquiryModal({ open: true, type: "sell" });
+                  handleCloseMenu();
+                  handleOpenInquiry({ type: "sell" });
                 }}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
                 <TrendingUp size={16} /> Sell Car Form
               </button>
-              <a href="#services" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#services" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Award size={16} /> Services
               </a>
-              <a href="#blog" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#blog" onClick={handleCloseMenu} className="mobile-nav-item">
                 <FileText size={16} /> Blog
               </a>
               <button
                 onClick={() => {
-                  setMobileMenuOpen(false);
-                  setInquiryModal({ open: true, type: "contact" });
+                  handleCloseMenu();
+                  handleOpenInquiry({ type: "contact" });
                 }}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
@@ -666,8 +765,8 @@ function PublicView({
               </button>
               <button
                 onClick={() => {
-                  setMobileMenuOpen(false);
-                  setInquiryModal({ open: true, type: "exchange" });
+                  handleCloseMenu();
+                  handleOpenInquiry({ type: "exchange" });
                 }}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
@@ -676,31 +775,31 @@ function PublicView({
               </button>
               <button
                 onClick={() => {
-                  setMobileMenuOpen(false);
-                  setServiceModalOpen(true);
+                  handleCloseMenu();
+                  handleOpenService();
                 }}
                 className="mobile-nav-item"
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
                 <Sparkles size={16} /> Car Service Booking Form
               </button>
-              <a href="#emi-calculator" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#emi-calculator" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Calculator size={16} /> EMI Calculator
               </a>
-              <a href="#reviews" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#reviews" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Star size={16} /> Customer Reviews
               </a>
-              <a href="#about" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#about" onClick={handleCloseMenu} className="mobile-nav-item">
                 <Info size={16} /> About Us
               </a>
-              <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="mobile-nav-item">
+              <a href="#contact" onClick={handleCloseMenu} className="mobile-nav-item">
                 <MapPin size={16} /> Visit Showroom & Map
               </a>
               {customerUser ? (
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setCustomerProfileModal(true);
+                    handleCloseMenu();
+                    handleOpenCustomerProfile();
                   }}
                   className="mobile-nav-item"
                   style={{
@@ -721,8 +820,8 @@ function PublicView({
               ) : (
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
-                    setCustomerAuthModal(true);
+                    handleCloseMenu();
+                    handleOpenCustomerAuth();
                   }}
                   className="mobile-nav-item"
                   style={{
@@ -874,7 +973,7 @@ function PublicView({
               </a>
 
               <button
-                onClick={() => setInquiryModal({ open: true, type: "sell" })}
+                onClick={() => handleOpenInquiry({ type: "sell" })}
                 className="btn btn-outline btn-lg"
               >
                 <TrendingUp size={18} />
@@ -882,7 +981,7 @@ function PublicView({
               </button>
 
               <button
-                onClick={() => setInquiryModal({ open: true, type: "test_drive" })}
+                onClick={() => handleOpenInquiry({ type: "test_drive" })}
                 className="btn btn-glass btn-lg"
               >
                 <Calendar size={18} />
@@ -1075,8 +1174,7 @@ function PublicView({
                   vehicle={v}
                   onViewDetails={() => handleOpenCar(v.id)}
                   onInquire={() =>
-                    setInquiryModal({
-                      open: true,
+                    handleOpenInquiry({
                       type: "buy",
                       vehicleId: v.id,
                       vehicleTitle: `${v.year} ${v.make} ${v.model} ${v.variant}`,
@@ -1133,7 +1231,7 @@ function PublicView({
               </div>
 
               <button
-                onClick={() => setInquiryModal({ open: true, type: "sell" })}
+                onClick={() => handleOpenInquiry({ type: "sell" })}
                 className="btn btn-primary btn-lg"
               >
                 <span>Request Free Car Valuation</span>
@@ -1142,7 +1240,7 @@ function PublicView({
 
               <div className="mobile-only-action" style={{ marginTop: 20 }}>
                 <button
-                  onClick={() => setInquiryModal({ open: true, type: "sell" })}
+                  onClick={() => handleOpenInquiry({ type: "sell" })}
                   className="btn btn-glass btn-sm"
                   style={{ width: "100%", justifyContent: "center" }}
                 >
@@ -1254,7 +1352,7 @@ function PublicView({
       </section>
 
       
-      <BlogSection onOpenArticle={(a) => setActiveGuideModal(a)} />
+      <BlogSection onOpenArticle={handleOpenGuide} />
 
       
       <RtiSection />
@@ -1353,7 +1451,7 @@ function PublicView({
                     cursor: "pointer",
                   }}
                   onClick={() =>
-                    setLightboxImg({
+                    handleOpenLightbox({
                       url: `/images/reviews/review-0${num}.webp`,
                       title: "Passion Car Happy Delivery Moment",
                       caption: "Certified key handover at our Kavuri Hills, Madhapur dealership.",
@@ -1418,7 +1516,7 @@ function PublicView({
                     key={item.id}
                     className="gallery-card"
                     onClick={() =>
-                      setLightboxImg({
+                      handleOpenLightbox({
                         url: item.imageUrl,
                         title: item.title,
                         caption: item.caption,
@@ -1638,7 +1736,7 @@ function PublicView({
           onClose={handleCloseCar}
           onBookThisCar={(title) => {
             handleCloseCar();
-            setInquiryModal({ open: true, type: "buy", vehicleId: selectedVehicleId, vehicleTitle: title });
+            handleOpenInquiry({ type: "buy", vehicleId: selectedVehicleId, vehicleTitle: title });
           }}
         />
       )}
@@ -1649,13 +1747,13 @@ function PublicView({
           type={inquiryModal.type}
           vehicleId={inquiryModal.vehicleId}
           vehicleTitle={inquiryModal.vehicleTitle}
-          onClose={() => setInquiryModal({ open: false, type: "contact" })}
+          onClose={handleCloseInquiry}
         />
       )}
 
       
       {lightboxImg && (
-        <div className="modal-backdrop" onClick={() => setLightboxImg(null)}>
+        <div className="modal-backdrop" onClick={handleCloseLightbox}>
           <div
             style={{
               maxWidth: 900,
@@ -1667,7 +1765,7 @@ function PublicView({
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => setLightboxImg(null)}
+              onClick={handleCloseLightbox}
               className="modal-close-btn"
               style={{ position: "absolute", top: -40, right: 0, color: "var(--text-main)" }}
             >
@@ -1689,7 +1787,7 @@ function PublicView({
       
       {customerAuthModal && (
         <CustomerSignInModal
-          onClose={() => setCustomerAuthModal(false)}
+          onClose={handleCloseCustomerAuth}
           onGoToAdmin={onGoToAdmin}
           onSuccessLogin={(user) => {
             setCustomerUser(user);
@@ -1703,7 +1801,7 @@ function PublicView({
       {customerProfileModal && customerUser && (
         <CustomerProfileModal
           user={customerUser}
-          onClose={() => setCustomerProfileModal(false)}
+          onClose={handleCloseCustomerProfile}
           onUpdateUser={(updated) => {
             setCustomerUser(updated);
             try {
@@ -1715,14 +1813,14 @@ function PublicView({
             try {
               localStorage.removeItem("passioncar_customer_session");
             } catch (_) {}
-            setCustomerProfileModal(false);
+            handleCloseCustomerProfile();
           }}
         />
       )}
 
       
       {activeGuideModal && (
-        <div className="modal-backdrop" onClick={() => setActiveGuideModal(null)}>
+        <div className="modal-backdrop" onClick={handleCloseGuide}>
           <div
             className="modal-content"
             style={{ maxWidth: 700 }}
@@ -1733,7 +1831,7 @@ function PublicView({
                 <span className="badge badge-gold">{activeGuideModal.date}</span>
                 <h3 className="modal-title" style={{ marginTop: 6, color: "var(--text-main)" }}>{activeGuideModal.title}</h3>
               </div>
-              <button onClick={() => setActiveGuideModal(null)} className="modal-close-btn">
+              <button onClick={handleCloseGuide} className="modal-close-btn">
                 <X size={20} />
               </button>
             </div>
@@ -1746,7 +1844,7 @@ function PublicView({
 
       
       {serviceModalOpen && (
-        <ServiceBookingModal onClose={() => setServiceModalOpen(false)} />
+        <ServiceBookingModal onClose={handleCloseService} />
       )}
 
       <a
@@ -1761,7 +1859,7 @@ function PublicView({
       </a>
 
       <MobileBottomBar
-        onBookTestDrive={() => setInquiryModal({ open: true, type: "test_drive" })}
+        onBookTestDrive={() => handleOpenInquiry({ type: "test_drive" })}
         phone={phone}
         whatsapp={whatsapp}
       />
@@ -4465,10 +4563,28 @@ function CarCard({
   onViewDetails: () => void;
   onInquire: () => void;
 }) {
-  const images =
-    vehicle.imageUrls && vehicle.imageUrls.length > 0
-      ? vehicle.imageUrls
-      : ["/images/hero-delivery.webp"];
+  const isCity = /city/i.test(vehicle.model);
+  const isJazz = /jazz/i.test(vehicle.model);
+
+  const fallbackCarPhotos = isCity
+    ? [
+        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+      ]
+    : isJazz
+    ? [
+        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+      ]
+    : [
+        "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+      ];
+
+  const deliveryRegex = /\/images\/(reviews\/|hero-delivery)/i;
+  const filtered = (vehicle.imageUrls || []).filter((u) => !deliveryRegex.test(u));
+  const images = filtered.length > 0 ? filtered : fallbackCarPhotos;
 
   const [activeImgIdx, setActiveImgIdx] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -4614,6 +4730,33 @@ function VehicleDetailModal({
 
   const title = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.variant}`;
 
+  const isCity = /city/i.test(vehicle.model);
+  const isJazz = /jazz/i.test(vehicle.model);
+
+  const fallbackCarPhotos = isCity
+    ? [
+        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+      ]
+    : isJazz
+    ? [
+        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
+      ]
+    : [
+        "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
+      ];
+
+  const deliveryRegex = /\/images\/(reviews\/|hero-delivery)/i;
+  const filteredCarImages = (vehicle.imageUrls || []).filter((u) => !deliveryRegex.test(u));
+  const carImages = filteredCarImages.length > 0 ? filteredCarImages : fallbackCarPhotos;
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -4632,20 +4775,35 @@ function VehicleDetailModal({
         <div style={{ padding: "clamp(16px, 4vw, 28px)" }}>
           
           <div className="contact-hours-grid">
-            <div style={{ height: 320, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "#000" }}>
+            <div style={{ height: 320, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "#000", position: "relative" }}>
               <img
-                src={vehicle.imageUrls[0] || "/images/hero-delivery.webp"}
+                src={carImages[selectedImgIdx] || carImages[0]}
                 alt={title}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
+              {carImages.length > 1 && (
+                <div style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.65)", padding: "4px 10px", borderRadius: 14, color: "#fff", fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
+                  <Camera size={12} />
+                  <span>{selectedImgIdx + 1} / {carImages.length}</span>
+                </div>
+              )}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {(vehicle.imageUrls.slice(1, 3).length > 0
-                ? vehicle.imageUrls.slice(1, 3)
-                : ["/images/reviews/review-01.webp", "/images/reviews/review-02.webp"]
-              ).map((url, i) => (
-                <div key={i} style={{ height: 153, borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
-                  <img src={url} alt="detail" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {carImages.slice(1, 4).map((url, i) => (
+                <div
+                  key={i}
+                  onClick={() => setSelectedImgIdx(i + 1)}
+                  style={{
+                    height: carImages.length > 2 ? 96 : 153,
+                    borderRadius: "var(--radius-sm)",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    border: selectedImgIdx === i + 1 ? "2px solid var(--primary)" : "1px solid var(--border)",
+                    opacity: selectedImgIdx === i + 1 ? 1 : 0.75,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <img src={url} alt={`${title} angle ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
               ))}
             </div>

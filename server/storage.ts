@@ -578,8 +578,9 @@ const INITIAL_VEHICLES: Omit<Vehicle, "id" | "createdAt" | "updatedAt">[] = [
     ],
     imageUrls: [
       "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80",
-      "/images/reviews/review-01.webp",
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
     ],
     status: "available",
   },
@@ -626,7 +627,7 @@ const INITIAL_VEHICLES: Omit<Vehicle, "id" | "createdAt" | "updatedAt">[] = [
     imageUrls: [
       "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
-      "/images/reviews/review-04.webp",
+      "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?auto=format&fit=crop&w=1200&q=80",
     ],
     status: "available",
   },
@@ -671,7 +672,8 @@ const INITIAL_VEHICLES: Omit<Vehicle, "id" | "createdAt" | "updatedAt">[] = [
     ],
     imageUrls: [
       "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
-      "/images/reviews/review-05.webp",
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80",
     ],
     status: "available",
   },
@@ -1129,11 +1131,12 @@ export class JsonStorage implements IStorage {
         list.sort((a, b) => b.id - a.id);
     }
 
-    return list;
+    return list.map(sanitizeVehicleImages);
   }
 
   async getVehicle(id: number): Promise<Vehicle | undefined> {
-    return this.data.vehicles.find((v) => v.id === id);
+    const v = this.data.vehicles.find((v) => v.id === id);
+    return v ? sanitizeVehicleImages(v) : undefined;
   }
 
   async createVehicle(input: any): Promise<Vehicle> {

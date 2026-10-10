@@ -232,6 +232,28 @@
       "vehicleId": null,
       "status": "new",
       "createdAt": "2026-10-10T05:02:34.907Z"
+    },
+    {
+      "id": 13,
+      "type": "service",
+      "name": "rahul",
+      "phone": "345678919",
+      "email": null,
+      "message": "[SERVICE TOKEN: PCS-SRV-1859] Package: General Checkup & Oil Topup | Date: 2026-10-10 | Slot: 09:30 AM - 11:00 AM (Morning Slot) | Car: bmw m5  & tg11bd9832",
+      "vehicleId": null,
+      "status": "new",
+      "createdAt": "2026-10-10T06:03:01.722Z"
+    },
+    {
+      "id": 14,
+      "type": "sell",
+      "name": "Krishna",
+      "phone": "6309198047",
+      "email": "krishnachaithanya8047@gmail.com",
+      "message": "",
+      "vehicleId": null,
+      "status": "new",
+      "createdAt": "2026-10-10T08:52:50.387Z"
     }
   ],
   "settings": {
@@ -629,6 +651,36 @@
       "serviceToken": null,
       "notes": "[Online Inquiry: CONTACT] RTO Desk Inquiry: [RC Ownership Transfer] - Vehicle: TG11BH0976. Note: None",
       "createdAt": "2026-10-10T05:02:34.933Z"
+    },
+    {
+      "id": 9,
+      "name": "Krishna",
+      "phone": "+91 88858 58380",
+      "email": "piracy958@gmail.com",
+      "carModel": "Google Account User",
+      "regNumber": "",
+      "transactionType": "current_buyer",
+      "amountInr": 0,
+      "date": "2026-10-10",
+      "status": "in_progress",
+      "serviceToken": null,
+      "notes": "Customer authenticated with Google OAuth.",
+      "createdAt": "2026-10-10T08:51:45.705Z"
+    },
+    {
+      "id": 10,
+      "name": "Krishna",
+      "phone": "6309198047",
+      "email": "krishnachaithanya8047@gmail.com",
+      "carModel": "Inquiry (sell)",
+      "regNumber": "",
+      "transactionType": "current_buyer",
+      "amountInr": 0,
+      "date": "2026-10-10",
+      "status": "in_progress",
+      "serviceToken": null,
+      "notes": "[Online Inquiry: SELL] ",
+      "createdAt": "2026-10-10T08:52:50.439Z"
     }
   ],
   "serviceBookings": [
@@ -659,6 +711,20 @@
       "status": "confirmed",
       "notes": "Check front brake pads",
       "createdAt": "2026-10-09T09:47:45.825Z"
+    },
+    {
+      "id": 3,
+      "token": "PCS-SRV-1859",
+      "customerName": "rahul",
+      "phone": "345678919",
+      "email": "",
+      "carDetails": "bmw m5  & tg11bd9832",
+      "servicePackage": "General Checkup & Oil Topup",
+      "date": "2026-10-10",
+      "timeSlot": "09:30 AM - 11:00 AM (Morning Slot)",
+      "status": "confirmed",
+      "notes": "",
+      "createdAt": "2026-10-10T06:03:00.851Z"
     }
   ]
 }
