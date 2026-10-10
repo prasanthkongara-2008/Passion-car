@@ -796,6 +796,16 @@ const INITIAL_GALLERY: Omit<GalleryItem, "id" | "createdAt">[] = [
   },
 ];
 
+export type CustomerReview = {
+  id: number;
+  authorName: string;
+  rating: number;
+  relativeTime: string;
+  text: string;
+  verified: boolean;
+  carModel?: string;
+};
+
 interface DataStore {
   vehicles: Vehicle[];
   inquiries: Inquiry[];
@@ -803,6 +813,7 @@ interface DataStore {
   gallery: GalleryItem[];
   customers: Customer[];
   serviceBookings: ServiceBooking[];
+  reviews: CustomerReview[];
 }
 
 const INITIAL_CUSTOMERS: Customer[] = [
@@ -923,6 +934,54 @@ const INITIAL_SERVICE_BOOKINGS: ServiceBooking[] = [
   },
 ];
 
+const INITIAL_REVIEWS: CustomerReview[] = [
+  {
+    id: 1,
+    authorName: "Rajesh Reddy",
+    rating: 5,
+    relativeTime: "2 weeks ago",
+    text: "Mohammed Akbar and team provide the most honest and transparent car purchasing experience in Hyderabad. Took delivery of our Hyundai Creta with full inspection history and zero hassle.",
+    verified: true,
+    carModel: "Hyundai Creta SX Petrol",
+  },
+  {
+    id: 2,
+    authorName: "Venkat Ramana",
+    rating: 5,
+    relativeTime: "3 weeks ago",
+    text: "Very genuine dealership in Kavuri Hills Madhapur. No odometer tampering, all documents verified, RC transfer completed smoothly within 10 days. Best in the area!",
+    verified: true,
+    carModel: "Honda City 1.5 V i-VTEC",
+  },
+  {
+    id: 3,
+    authorName: "Syed Furqan",
+    rating: 5,
+    relativeTime: "1 month ago",
+    text: "Excellent collection of well-maintained premium cars. Akbar Bhai explained every mechanical detail with patience and gave a thorough test drive before finalizing.",
+    verified: true,
+    carModel: "BMW 3 Series 320d Luxury Line",
+  },
+  {
+    id: 4,
+    authorName: "Sneha Sharma",
+    rating: 5,
+    relativeTime: "1 month ago",
+    text: "Got our dream family car at a fair market price. The 150-point certified quality check and warranty reassurance made our decision so easy. Thank you Passion Car!",
+    verified: true,
+    carModel: "Volkswagen Polo 1.0 TSI Highline",
+  },
+  {
+    id: 5,
+    authorName: "Karthik Varma",
+    rating: 5,
+    relativeTime: "2 months ago",
+    text: "Top-notch customer care! From inspection to loan processing and ceremonial delivery handover, everything was 5-star standard. Highly recommended.",
+    verified: true,
+    carModel: "Kia Seltos HTX 1.5 Petrol",
+  },
+];
+
 export function sanitizeVehicleImages(v: Vehicle): Vehicle {
   const deliveryRegex = /\/images\/(reviews\/|hero-delivery)/i;
   const filtered = (v.imageUrls || []).filter((url) => !deliveryRegex.test(url));
@@ -1010,8 +1069,11 @@ export class JsonStorage implements IStorage {
       ],
       settings: {
         carsSold: 250,
-        googleRating: 4.2,
-        googleReviews: 24,
+        googleRating: 4.9,
+        googleReviews: 148,
+        googleReviewsCount: 148,
+        showroomHoursMonSat: "Open Mon - Sat: 10:00 AM – 8:30 PM",
+        showroomHoursSun: "Sunday: 10:30 AM – 7:00 PM",
         phone: "+91 88858 58380",
         whatsapp: "+918885858380",
         address: "Plot No: 25, 100 Feet Rd, Sri Rama Colony, Kavuri Hills, Madhapur, Hyderabad, Telangana 500081",
@@ -1026,6 +1088,7 @@ export class JsonStorage implements IStorage {
       })),
       customers: INITIAL_CUSTOMERS,
       serviceBookings: INITIAL_SERVICE_BOOKINGS,
+      reviews: INITIAL_REVIEWS,
     };
 
     this.saveData(defaultData);
@@ -1357,8 +1420,14 @@ export class JsonStorage implements IStorage {
       adminPhoto: this.data.settings.adminPhoto || "",
       adminName: this.data.settings.adminName || "Mohammed Akbar",
       adminPhone: this.data.settings.adminPhone || "+91 88858 58380",
-      rating: 4.2,
-      reviewsCount: 24,
+      showroomHoursMonSat:
+        this.data.settings.showroomHoursMonSat || "Open Mon - Sat: 10:00 AM – 8:30 PM",
+      showroomHoursSun:
+        this.data.settings.showroomHoursSun || "Sunday: 10:30 AM – 7:00 PM",
+      rating: Number(this.data.settings.googleRating) || 4.9,
+      googleRating: Number(this.data.settings.googleRating) || 4.9,
+      reviewsCount: Number(this.data.settings.googleReviewsCount) || 148,
+      googleReviewsCount: Number(this.data.settings.googleReviewsCount) || 148,
     };
   }
 
@@ -1370,6 +1439,16 @@ export class JsonStorage implements IStorage {
     if (update.adminPhoto !== undefined) this.data.settings.adminPhoto = update.adminPhoto;
     if (update.adminName !== undefined) this.data.settings.adminName = update.adminName.trim();
     if (update.adminPhone !== undefined) this.data.settings.adminPhone = update.adminPhone.trim();
+    if (update.showroomHoursMonSat !== undefined) this.data.settings.showroomHoursMonSat = update.showroomHoursMonSat.trim();
+    if (update.showroomHoursSun !== undefined) this.data.settings.showroomHoursSun = update.showroomHoursSun.trim();
+    if (update.googleRating !== undefined) {
+      this.data.settings.googleRating = Number(update.googleRating);
+      this.data.settings.rating = Number(update.googleRating);
+    }
+    if (update.googleReviewsCount !== undefined) {
+      this.data.settings.googleReviewsCount = Number(update.googleReviewsCount);
+      this.data.settings.reviewsCount = Number(update.googleReviewsCount);
+    }
     this.saveData();
     if (db) {
       for (const [k, v] of Object.entries(update)) {
@@ -1380,6 +1459,28 @@ export class JsonStorage implements IStorage {
       }
     }
     return this.getSettings();
+  }
+
+  async getReviews(): Promise<CustomerReview[]> {
+    this.ensureFreshData();
+    if (!this.data.reviews || this.data.reviews.length === 0) {
+      this.data.reviews = [...INITIAL_REVIEWS];
+      this.saveData();
+    }
+    return this.data.reviews;
+  }
+
+  async addReview(review: Omit<CustomerReview, "id">): Promise<CustomerReview> {
+    this.ensureFreshData();
+    if (!this.data.reviews) this.data.reviews = [...INITIAL_REVIEWS];
+    const newId = this.data.reviews.length > 0 ? Math.max(...this.data.reviews.map((r) => r.id)) + 1 : 1;
+    const item: CustomerReview = {
+      ...review,
+      id: newId,
+    };
+    this.data.reviews.unshift(item);
+    this.saveData();
+    return item;
   }
 
   async getGallery(category?: string): Promise<GalleryItem[]> {

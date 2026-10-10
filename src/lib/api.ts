@@ -8,6 +8,7 @@ import type {
   AdminUser,
   Customer,
   CustomerInput,
+  CustomerReview,
   GalleryItem,
   GalleryItemInput,
   GoogleRating,
@@ -118,12 +119,36 @@ export function useSiteSettings() {
   });
 }
 
+export const reviewsKey = ["reviews"] as const;
+
 export function useGoogleRating() {
   return useQuery({
     queryKey: googleRatingKey,
     queryFn: () => request<GoogleRating>("/api/google-rating"),
     staleTime: 5 * 60_000,
     retry: false,
+  });
+}
+
+export function useReviews() {
+  return useQuery({
+    queryKey: reviewsKey,
+    queryFn: () => request<CustomerReview[]>("/api/reviews"),
+    staleTime: 60_000,
+  });
+}
+
+export function useSubmitReview() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { authorName: string; rating: number; text: string; carModel?: string }) =>
+      request<CustomerReview>("/api/reviews", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: reviewsKey });
+    },
   });
 }
 
@@ -518,15 +543,7 @@ export function useDeleteGalleryItem() {
 export function useUpdateSiteSettings() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      carsSold?: number;
-      phone?: string;
-      whatsapp?: string;
-      address?: string;
-      adminPhoto?: string;
-      adminName?: string;
-      adminPhone?: string;
-    }) =>
+    mutationFn: (input: Partial<SiteSettings>) =>
       request<SiteSettings>("/api/admin/settings", {
         method: "PUT",
         body: JSON.stringify(input),

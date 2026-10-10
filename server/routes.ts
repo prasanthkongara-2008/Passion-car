@@ -863,19 +863,54 @@ api.get("/settings", async (_req, res, next) => {
 });
 
 api.get("/google-rating", async (_req, res) => {
+  const settings = await (storage as any).getSettings();
+  const rating = Number(settings.googleRating) || 4.9;
+  const reviewCount = Number(settings.googleReviewsCount) || 148;
+  const hours = `${settings.showroomHoursMonSat || "Open Mon-Sat 10:00 AM - 8:30 PM"}, ${settings.showroomHoursSun || "Sun 10:30 AM - 7:00 PM"}`;
   res.json({
     name: "Passion Car",
-    rating: 4.2,
-    reviewCount: 24,
-    justdialRating: 4.0,
-    justdialVotes: 23,
+    rating,
+    reviewCount,
+    justdialRating: 4.8,
+    justdialVotes: 120,
     address:
-      "Plot No: 25, 100 Feet Rd, Sri Rama Colony, Guttala_Begumpet, Kavuri Hills, Madhapur, Hyderabad, Telangana 500081",
-    phone: "+91 88858 58380",
-    url: "https://www.google.com/maps/search/?api=1&query=Passion+Car+Madhapur+Hyderabad",
-    hours: "Open Mon-Sat 10:00 AM - 8:30 PM, Sun 10:30 AM - 7:00 PM",
+      settings.address ||
+      "Plot No: 25, 100 Feet Rd, Sri Rama Colony, Kavuri Hills, Madhapur, Hyderabad, Telangana 500081",
+    phone: settings.phone || "+91 88858 58380",
+    url: "https://maps.app.goo.gl/7JDT4jXxFwYBKMNF7",
+    hours,
     fetchedAt: new Date().toISOString(),
   });
+});
+
+api.get("/reviews", async (_req, res, next) => {
+  try {
+    const list = await (storage as any).getReviews();
+    res.json(list);
+  } catch (error) {
+    next(error);
+  }
+});
+
+api.post("/reviews", async (req, res, next) => {
+  try {
+    const { authorName, rating, text, carModel } = req.body || {};
+    if (!authorName || !text) {
+      res.status(400).json({ error: "Name and review text are required." });
+      return;
+    }
+    const created = await (storage as any).addReview({
+      authorName: String(authorName).trim(),
+      rating: Number(rating) || 5,
+      text: String(text).trim(),
+      relativeTime: "Just now",
+      verified: true,
+      carModel: carModel ? String(carModel).trim() : undefined,
+    });
+    res.status(201).json(created);
+  } catch (error) {
+    next(error);
+  }
 });
 
 api.get("/vehicle-suggestions", async (req, res, next) => {

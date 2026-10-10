@@ -140,6 +140,7 @@ export type SiteSettings = {
   carsSold?: number;
   googleRating?: number;
   googleReviews?: number;
+  googleReviewsCount?: number;
   phone?: string;
   whatsapp?: string;
   address?: string;
@@ -148,6 +149,18 @@ export type SiteSettings = {
   adminPhone?: string;
   rating?: number;
   reviewsCount?: number;
+  showroomHoursMonSat?: string;
+  showroomHoursSun?: string;
+};
+
+export type CustomerReview = {
+  id: number;
+  authorName: string;
+  rating: number;
+  relativeTime: string;
+  text: string;
+  verified: boolean;
+  carModel?: string;
 };
 
 export type Customer = {

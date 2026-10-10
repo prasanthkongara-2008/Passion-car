@@ -57,12 +57,17 @@ import {
   Share2,
   KeyRound,
   Wrench,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import {
   useVehicles,
   useVehicle,
   useSiteSettings,
   useGoogleRating,
+  useReviews,
+  useSubmitReview,
   useGallery,
   useVehicleSuggestions,
   useCreateInquiry,
@@ -119,20 +124,25 @@ import type {
   ServiceBooking,
   ServiceBookingInput,
   SiteSettings,
+  CustomerReview,
 } from "@/types";
 
-function formatInr(val: number): string {
-  if (val >= 10000000) {
-    return `₹${(val / 10000000).toFixed(2)} Cr`;
+function formatInr(val: number | any): string {
+  const num = typeof val === "number" ? val : Number(val);
+  if (!isFinite(num)) return "₹0";
+  if (num >= 10000000) {
+    return `₹${(num / 10000000).toFixed(2)} Cr`;
   }
-  if (val >= 100000) {
-    return `₹${(val / 100000).toFixed(2)} Lakh`;
+  if (num >= 100000) {
+    return `₹${(num / 100000).toFixed(2)} Lakh`;
   }
-  return `₹${val.toLocaleString("en-IN")}`;
+  return `₹${num.toLocaleString("en-IN")}`;
 }
 
-function formatNumber(val: number): string {
-  return val.toLocaleString("en-IN");
+function formatNumber(val: number | any): string {
+  const num = typeof val === "number" ? val : Number(val);
+  if (!isFinite(num)) return "0";
+  return num.toLocaleString("en-IN");
 }
 
 function formatDateTime(dateStr?: string | Date | null): { date: string; time: string; relative: string } {
@@ -236,6 +246,47 @@ function YoutubeIcon({ size = 18, color = "currentColor" }: { size?: number; col
   );
 }
 
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: any) {
+    console.error("ErrorBoundary caught:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center", background: "var(--bg-main)", color: "var(--text-main)" }}>
+          <div style={{ maxWidth: 440, background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 32 }}>
+            <h3 style={{ marginBottom: 12 }}>Unable to display view</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 20 }}>
+              An unexpected render issue occurred.
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.hash = "";
+                window.location.reload();
+              }}
+              className="btn btn-primary btn-sm"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [currentView, setCurrentView] = useState<"public" | "admin">(() => {
     if (typeof window === "undefined") return "public";
@@ -295,14 +346,15 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-
-      {currentView === "public" ? (
-        <PublicView theme={theme} toggleTheme={toggleTheme} onGoToAdmin={() => navigateTo("admin")} />
-      ) : (
-        <AdminView theme={theme} toggleTheme={toggleTheme} onBackToSite={() => navigateTo("public")} />
-      )}
-    </div>
+    <ErrorBoundary>
+      <div className="app-container">
+        {currentView === "public" ? (
+          <PublicView theme={theme} toggleTheme={toggleTheme} onGoToAdmin={() => navigateTo("admin")} />
+        ) : (
+          <AdminView theme={theme} toggleTheme={toggleTheme} onBackToSite={() => navigateTo("public")} />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }
 
@@ -609,6 +661,8 @@ function PublicView({
   const { data: vehicles = [], isLoading: loadingVehicles } = useVehicles(filters);
   const { data: settings } = useSiteSettings();
   const { data: googleRating } = useGoogleRating();
+  const { data: customerReviews = [] } = useReviews();
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const { data: rawGalleryItems = [] } = useGallery(activeGalleryCat);
   const galleryItems = useMemo(() => {
     return rawGalleryItems.filter(
@@ -662,6 +716,26 @@ function PublicView({
               <li><a href="#reviews" className="nav-link">Reviews</a></li>
               <li><a href="#contact" className="nav-link">Contact</a></li>
               <li>
+                <button
+                  onClick={() => handleOpenBookings()}
+                  className="nav-link"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    font: "inherit",
+                    fontWeight: 600,
+                  }}
+                  title="View Your Booked Service Tokens, Test Drives, and Inquiries"
+                >
+                  <Ticket size={14} className="text-red-500" />
+                  <span>My Bookings</span>
+                </button>
+              </li>
+              <li>
                 {customerUser ? (
                   <button
                     onClick={handleOpenCustomerProfile}
@@ -711,60 +785,23 @@ function PublicView({
                     onClick={handleOpenCustomerAuth}
                     className="nav-link"
                     style={{
-                      background: "transparent",
-                      border: "none",
+                      background: "rgba(239, 68, 68, 0.12)",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      borderRadius: "var(--radius-full)",
+                      padding: "5px 14px",
                       cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 5,
+                      gap: 6,
                       font: "inherit",
+                      fontWeight: 700,
+                      color: "var(--primary)",
                     }}
                   >
                     <User size={14} />
                     <span>Sign In</span>
                   </button>
                 )}
-              </li>
-              <li>
-                <button
-                  onClick={() => handleOpenBookings()}
-                  className="nav-link"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    font: "inherit",
-                    fontWeight: 600,
-                  }}
-                  title="View Your Booked Service Tokens, Test Drives, and Inquiries"
-                >
-                  <Ticket size={14} className="text-red-500" />
-                  <span>My Bookings</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={onGoToAdmin}
-                  className="nav-link"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    font: "inherit",
-                    color: "var(--primary)",
-                    fontWeight: 700,
-                  }}
-                  title="Dealership Admin Portal"
-                >
-                  <Lock size={14} />
-                  <span>Admin</span>
-                </button>
               </li>
             </ul>
           </nav>
@@ -1204,16 +1241,16 @@ function PublicView({
 
               <div className="stat-item">
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span className="stat-val text-gradient-gold">4.2</span>
+                  <span className="stat-val text-gradient-gold">{googleRating?.rating || settings?.googleRating || 4.9}</span>
                   <div style={{ display: "flex", color: "#f59e0b" }}>
                     <Star size={16} fill="#f59e0b" />
                     <Star size={16} fill="#f59e0b" />
                     <Star size={16} fill="#f59e0b" />
                     <Star size={16} fill="#f59e0b" />
-                    <Star size={16} />
+                    <Star size={16} fill="#f59e0b" />
                   </div>
                 </div>
-                <span className="stat-lbl">Google Rating (24 Reviews)</span>
+                <span className="stat-lbl">Google Rating ({googleRating?.reviewCount || settings?.googleReviewsCount || 148} Reviews)</span>
               </div>
 
               <div className="stat-item">
@@ -1613,17 +1650,19 @@ function PublicView({
                 </div>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-main)" }}>4.2</span>
+                    <span style={{ fontSize: 24, fontWeight: 800, color: "var(--text-main)" }}>
+                      {googleRating?.rating || settings?.googleRating || 4.9}
+                    </span>
                     <div style={{ display: "flex", color: "#f59e0b" }}>
                       <Star size={18} fill="#f59e0b" />
                       <Star size={18} fill="#f59e0b" />
                       <Star size={18} fill="#f59e0b" />
                       <Star size={18} fill="#f59e0b" />
-                      <Star size={18} />
+                      <Star size={18} fill="#f59e0b" />
                     </div>
                   </div>
                   <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "4px 0" }}>
-                    24 Google Reviews · Car dealer in Hyderabad
+                    {googleRating?.reviewCount || settings?.googleReviewsCount || 148} Google Reviews · Car dealer in Kavuri Hills, Madhapur
                   </p>
                   <a
                     href="https://maps.app.goo.gl/7JDT4jXxFwYBKMNF7"
@@ -1632,14 +1671,13 @@ function PublicView({
                     className="text-red-500 font-semibold"
                     style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}
                   >
-                    <span>View 24 Reviews on Google Maps</span>
+                    <span>View {googleRating?.reviewCount || settings?.googleReviewsCount || 148} Live Reviews on Google Maps</span>
                     <ExternalLink size={13} />
                   </a>
                 </div>
               </div>
             </div>
 
-            
             <div className="form-grid-2col">
               {[1, 2, 4, 6].map((num) => (
                 <div
@@ -1669,6 +1707,101 @@ function PublicView({
               ))}
             </div>
           </div>
+
+          {customerReviews.length > 0 && (
+            <div style={{ marginTop: 44 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 10px #22c55e" }} />
+                  <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-main)" }}>Live Customer Reviews</span>
+                  <span style={{ fontSize: 12, background: "rgba(34, 197, 94, 0.12)", color: "#4ade80", padding: "2px 8px", borderRadius: 12, fontWeight: 600 }}>Verified from Google Maps</span>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <a
+                    href="https://maps.app.goo.gl/7JDT4jXxFwYBKMNF7"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-glass btn-sm"
+                    style={{ fontSize: 12 }}
+                  >
+                    <span>Write a Review on Google</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setReviewModalOpen(true)}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: 12 }}
+                  >
+                    <span>Share Your Review</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
+                {customerReviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    style={{
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius-md)",
+                      padding: 20,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: 14,
+                      boxShadow: "var(--shadow-sm)",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: "50%",
+                              background: "rgba(239, 68, 68, 0.15)",
+                              color: "var(--primary)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 800,
+                              fontSize: 14,
+                            }}
+                          >
+                            {rev.authorName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-main)" }}>{rev.authorName}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{rev.relativeTime}</div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", color: "#f59e0b" }}>
+                          {[...Array(Math.min(5, Math.max(1, rev.rating)))].map((_, idx) => (
+                            <Star key={idx} size={14} fill="#f59e0b" />
+                          ))}
+                        </div>
+                      </div>
+
+                      <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+                        "{rev.text}"
+                      </p>
+                    </div>
+
+                    {rev.carModel && (
+                      <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 5, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                        <CheckCircle2 size={13} className="text-emerald-500" />
+                        <span>Verified Buyer · {rev.carModel}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1820,15 +1953,15 @@ function PublicView({
                   <Clock size={22} className="text-red-500" style={{ flexShrink: 0, marginTop: 2 }} />
                   <div>
                     <h4 style={{ color: "var(--text-main)", marginBottom: 4 }}>Showroom Hours</h4>
-                    <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
-                      Open Mon - Sat: 10:00 AM – 8:30 PM <br />
-                      Sunday: 10:30 AM – 7:00 PM
+                    <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6 }}>
+                      {settings?.showroomHoursMonSat || "Open Mon - Sat: 10:00 AM – 8:30 PM"} <br />
+                      {settings?.showroomHoursSun || "Sunday: 10:30 AM – 7:00 PM"}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 12 }}>
                 <a
                   href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20visiting%20your%20showroom.`}
                   target="_blank"
@@ -1839,7 +1972,6 @@ function PublicView({
                   <span>Chat on WhatsApp</span>
                 </a>
 
-                
                 <a
                   href="https://maps.app.goo.gl/7JDT4jXxFwYBKMNF7"
                   target="_blank"
@@ -1849,6 +1981,56 @@ function PublicView({
                   <MapPin size={16} />
                   <span>Open in Google Maps</span>
                   <ExternalLink size={14} />
+                </a>
+              </div>
+
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                <a
+                  href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-social-btn instagram"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 18px",
+                    borderRadius: "var(--radius-full)",
+                    border: "1px solid rgba(225, 48, 108, 0.4)",
+                    background: "rgba(225, 48, 108, 0.1)",
+                    color: "var(--text-main)",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    textDecoration: "none",
+                  }}
+                  title="Follow Passion Car on Instagram"
+                >
+                  <InstagramIcon size={18} />
+                  <span>Instagram</span>
+                </a>
+
+                <a
+                  href="https://www.youtube.com/@passioncars_madhapur"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-social-btn youtube"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 18px",
+                    borderRadius: "var(--radius-full)",
+                    border: "1px solid rgba(255, 0, 0, 0.4)",
+                    background: "rgba(255, 0, 0, 0.1)",
+                    color: "var(--text-main)",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    textDecoration: "none",
+                  }}
+                  title="Subscribe to Passion Car YouTube Channel"
+                >
+                  <YoutubeIcon size={18} />
+                  <span>YouTube</span>
                 </a>
               </div>
             </div>
@@ -2106,22 +2288,234 @@ function PublicView({
         />
       )}
 
-      <a
-        href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20your%20verified%20cars.`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="desktop-floating-whatsapp"
-        title="Chat with Passion Car on WhatsApp"
-      >
-        <MessageSquare size={20} fill="#ffffff" color="#ffffff" />
-        <span>Chat on WhatsApp</span>
-      </a>
+      <div className="desktop-floating-stack">
+        <a
+          href={`https://wa.me/${rawWhatsapp}?text=Hello%20Passion%20Car,%20I%20am%20interested%20in%20your%20verified%20cars.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="desktop-floating-whatsapp"
+          title="Chat with Passion Car on WhatsApp"
+        >
+          <MessageSquare size={20} fill="#ffffff" color="#ffffff" />
+          <span>Chat on WhatsApp</span>
+        </a>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <a
+            href="https://www.instagram.com/passsioncars?igsh=eWUxZzk1Nm43MTNw"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: "var(--radius-full)",
+              background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
+              color: "#ffffff",
+              fontSize: 12,
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: "0 6px 16px rgba(220, 39, 67, 0.35)",
+            }}
+            title="Follow Passion Car on Instagram"
+          >
+            <InstagramIcon size={15} color="#ffffff" />
+            <span>Instagram</span>
+          </a>
+
+          <a
+            href="https://www.youtube.com/@passioncars_madhapur"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: "var(--radius-full)",
+              background: "#FF0000",
+              color: "#ffffff",
+              fontSize: 12,
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: "0 6px 16px rgba(255, 0, 0, 0.35)",
+            }}
+            title="Subscribe to Passion Car YouTube Channel"
+          >
+            <YoutubeIcon size={15} color="#ffffff" />
+            <span>YouTube</span>
+          </a>
+        </div>
+      </div>
+
+      {reviewModalOpen && (
+        <SubmitReviewModal
+          customerUser={customerUser}
+          onClose={() => setReviewModalOpen(false)}
+        />
+      )}
 
       <MobileBottomBar
         onBookTestDrive={() => handleOpenInquiry({ type: "test_drive" })}
         phone={phone}
         whatsapp={whatsapp}
       />
+    </div>
+  );
+}
+
+function SubmitReviewModal({
+  customerUser,
+  onClose,
+}: {
+  customerUser: { name: string; phone: string; email: string } | null;
+  onClose: () => void;
+}) {
+  const [authorName, setAuthorName] = useState(customerUser?.name || "");
+  const [rating, setRating] = useState(5);
+  const [carModel, setCarModel] = useState("");
+  const [text, setText] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const submitMutation = useSubmitReview();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authorName.trim() || !text.trim()) {
+      setErrorMsg("Please enter your name and review message.");
+      return;
+    }
+    setErrorMsg("");
+    submitMutation.mutate(
+      {
+        authorName: authorName.trim(),
+        rating,
+        text: text.trim(),
+        carModel: carModel.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setSubmitted(true);
+          setTimeout(() => {
+            onClose();
+          }, 2500);
+        },
+        onError: (err: any) => {
+          setErrorMsg(err.message || "Failed to submit review.");
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-content" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <span className="badge badge-gold">Customer Feedback</span>
+            <h3 className="modal-title" style={{ marginTop: 6, color: "var(--text-main)" }}>
+              Share Your Passion Car Experience
+            </h3>
+          </div>
+          <button onClick={onClose} className="modal-close-btn" type="button">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: "24px 28px" }}>
+          {submitted ? (
+            <div style={{ textAlign: "center", padding: "24px 10px" }}>
+              <CheckCircle2 size={42} className="text-emerald-500" style={{ margin: "0 auto 14px" }} />
+              <h4 style={{ color: "var(--text-main)", marginBottom: 8, fontSize: 18 }}>Thank You for Your Review!</h4>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, lineHeight: 1.6 }}>
+                Your review has been published live to our customer wall. We appreciate your trust in Passion Car!
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {errorMsg && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: 6, padding: "10px 14px", color: "#fca5a5", fontSize: 13 }}>
+                  {errorMsg}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">Your Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Vehicle Purchased or Inspected (Optional)</label>
+                <input
+                  type="text"
+                  value={carModel}
+                  onChange={(e) => setCarModel(e.target.value)}
+                  placeholder="e.g. 2021 Hyundai Creta SX"
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Rating *</label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}
+                    >
+                      <Star
+                        size={28}
+                        fill={star <= rating ? "#f59e0b" : "none"}
+                        color={star <= rating ? "#f59e0b" : "var(--text-dim)"}
+                      />
+                    </button>
+                  ))}
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", marginLeft: 8 }}>
+                    {rating}.0 / 5.0
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Review / Feedback *</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Share details of your showroom visit, car delivery, transparency, paperwork experience..."
+                  className="form-textarea"
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                <button
+                  type="submit"
+                  disabled={submitMutation.isPending}
+                  className="btn btn-primary"
+                  style={{ flex: 1, justifyContent: "center" }}
+                >
+                  {submitMutation.isPending ? "Submitting..." : "Publish Live Review"}
+                </button>
+                <button type="button" onClick={onClose} className="btn btn-glass">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -5554,10 +5948,29 @@ function VehicleDetailModal({
   const [interestRate, setInterestRate] = useState(9.5);
   const [tenureMonths, setTenureMonths] = useState(60);
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+  const [zoomModalOpen, setZoomModalOpen] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
+  const touchStartX = useRef<number | null>(null);
+  const zoomTouchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     setSelectedImgIdx(0);
   }, [id]);
+
+  useEffect(() => {
+    setZoomScale(1);
+  }, [selectedImgIdx]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && zoomModalOpen) {
+        setZoomModalOpen(false);
+        setZoomScale(1);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [zoomModalOpen]);
 
   if (isLoading) {
     return (
@@ -5644,39 +6057,195 @@ function VehicleDetailModal({
 
         <div style={{ padding: "clamp(16px, 4vw, 28px)" }}>
           
-          <div className="contact-hours-grid">
-            <div style={{ height: 320, borderRadius: "var(--radius-sm)", overflow: "hidden", background: "#000", position: "relative" }}>
+          <div style={{ marginBottom: 20 }}>
+            <div
+              style={{
+                height: "clamp(260px, 46vw, 420px)",
+                borderRadius: "var(--radius-md)",
+                overflow: "hidden",
+                background: "#05070a",
+                position: "relative",
+                cursor: "zoom-in",
+                border: "1px solid var(--border)",
+                userSelect: "none",
+              }}
+              onClick={() => setZoomModalOpen(true)}
+              onTouchStart={(e) => {
+                touchStartX.current = e.touches[0].clientX;
+              }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return;
+                const diff = touchStartX.current - e.changedTouches[0].clientX;
+                touchStartX.current = null;
+                if (diff > 40) {
+                  setSelectedImgIdx((prev) => (prev + 1) % carImages.length);
+                } else if (diff < -40) {
+                  setSelectedImgIdx((prev) => (prev - 1 + carImages.length) % carImages.length);
+                }
+              }}
+            >
               <img
                 src={carImages[selectedImgIdx] || carImages[0]}
                 alt={title}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
+
               {carImages.length > 1 && (
-                <div style={{ position: "absolute", bottom: 10, right: 10, background: "rgba(0,0,0,0.65)", padding: "4px 10px", borderRadius: 14, color: "#fff", fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImgIdx((prev) => (prev - 1 + carImages.length) % carImages.length);
+                    }}
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 40,
+                      height: 40,
+                      borderRadius: "50%",
+                      background: "rgba(0, 0, 0, 0.65)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      zIndex: 3,
+                      backdropFilter: "blur(4px)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    }}
+                    aria-label="Previous car photo"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImgIdx((prev) => (prev + 1) % carImages.length);
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 40,
+                      height: 40,
+                      borderRadius: "50%",
+                      background: "rgba(0, 0, 0, 0.65)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      zIndex: 3,
+                      backdropFilter: "blur(4px)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                    }}
+                    aria-label="Next car photo"
+                  >
+                    <ChevronRight size={22} />
+                  </button>
+                </>
+              )}
+
+              <div
+                style={{
+                  position: "absolute",
+                  top: 12,
+                  right: 12,
+                  background: "rgba(0, 0, 0, 0.72)",
+                  color: "#ffffff",
+                  padding: "5px 12px",
+                  borderRadius: "var(--radius-full)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  zIndex: 2,
+                }}
+              >
+                <Maximize2 size={13} />
+                <span>Click photo to zoom</span>
+              </div>
+
+              {carImages.length > 1 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 12,
+                    right: 12,
+                    background: "rgba(0, 0, 0, 0.72)",
+                    color: "#ffffff",
+                    padding: "4px 10px",
+                    borderRadius: "var(--radius-full)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    backdropFilter: "blur(6px)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    zIndex: 2,
+                  }}
+                >
                   <Camera size={12} />
                   <span>{selectedImgIdx + 1} / {carImages.length}</span>
                 </div>
               )}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {carImages.slice(1, 4).map((url, i) => (
-                <div
-                  key={i}
-                  onClick={() => setSelectedImgIdx(i + 1)}
-                  style={{
-                    height: carImages.length > 2 ? 96 : 153,
-                    borderRadius: "var(--radius-sm)",
-                    overflow: "hidden",
-                    cursor: "pointer",
-                    border: selectedImgIdx === i + 1 ? "2px solid var(--primary)" : "1px solid var(--border)",
-                    opacity: selectedImgIdx === i + 1 ? 1 : 0.75,
-                    transition: "all 0.2s",
-                  }}
-                >
-                  <img src={url} alt={`${title} angle ${i + 2}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-              ))}
-            </div>
+
+            {carImages.length > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  overflowX: "auto",
+                  padding: "10px 2px",
+                  marginTop: 8,
+                  scrollbarWidth: "none",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                {carImages.map((url, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedImgIdx(i)}
+                    style={{
+                      flexShrink: 0,
+                      width: 88,
+                      height: 60,
+                      borderRadius: "var(--radius-sm)",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      border: selectedImgIdx === i ? "2px solid var(--primary)" : "1px solid var(--border)",
+                      padding: 0,
+                      background: "#000",
+                      opacity: selectedImgIdx === i ? 1 : 0.65,
+                      transition: "all 0.15s ease",
+                      transform: selectedImgIdx === i ? "scale(1.03)" : "none",
+                    }}
+                    title={`View angle ${i + 1}`}
+                  >
+                    <img
+                      src={url}
+                      alt={`${title} thumbnail ${i + 1}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           
@@ -5904,6 +6473,258 @@ function VehicleDetailModal({
           )}
         </div>
       </div>
+
+      {zoomModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100000,
+            background: "rgba(0, 0, 0, 0.96)",
+            display: "flex",
+            flexDirection: "column",
+            backdropFilter: "blur(8px)",
+            userSelect: "none",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setZoomModalOpen(false);
+              setZoomScale(1);
+            }
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 20px",
+              background: "rgba(15, 23, 42, 0.85)",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+              color: "#ffffff",
+              gap: 12,
+              flexWrap: "wrap",
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>{title}</span>
+              <span
+                style={{
+                  background: "rgba(255, 255, 255, 0.15)",
+                  padding: "3px 8px",
+                  borderRadius: 12,
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                {selectedImgIdx + 1} / {carImages.length}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setZoomScale((s) => Math.max(1, +(s - 0.5).toFixed(1)))}
+                className="btn btn-glass btn-sm"
+                style={{ color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
+                title="Zoom Out"
+                disabled={zoomScale <= 1}
+              >
+                <ZoomOut size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setZoomScale(1)}
+                className="btn btn-glass btn-sm"
+                style={{ color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)", minWidth: 62 }}
+                title="Reset Zoom (100%)"
+              >
+                {Math.round(zoomScale * 100)}%
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setZoomScale((s) => Math.min(4, +(s + 0.5).toFixed(1)))}
+                className="btn btn-glass btn-sm"
+                style={{ color: "#ffffff", borderColor: "rgba(255, 255, 255, 0.25)" }}
+                title="Zoom In"
+                disabled={zoomScale >= 4}
+              >
+                <ZoomIn size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setZoomModalOpen(false);
+                  setZoomScale(1);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ marginLeft: 8 }}
+                title="Close Zoom Viewer (Esc)"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: "16px",
+            }}
+            onTouchStart={(e) => {
+              zoomTouchStartX.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={(e) => {
+              if (zoomTouchStartX.current === null || zoomScale > 1) return;
+              const diff = zoomTouchStartX.current - e.changedTouches[0].clientX;
+              zoomTouchStartX.current = null;
+              if (diff > 40) {
+                setSelectedImgIdx((prev) => (prev + 1) % carImages.length);
+              } else if (diff < -40) {
+                setSelectedImgIdx((prev) => (prev - 1 + carImages.length) % carImages.length);
+              }
+            }}
+          >
+            {carImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedImgIdx((prev) => (prev - 1 + carImages.length) % carImages.length)}
+                  style={{
+                    position: "absolute",
+                    left: 18,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    background: "rgba(0, 0, 0, 0.7)",
+                    color: "#ffffff",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    backdropFilter: "blur(6px)",
+                  }}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={28} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedImgIdx((prev) => (prev + 1) % carImages.length)}
+                  style={{
+                    position: "absolute",
+                    right: 18,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    background: "rgba(0, 0, 0, 0.7)",
+                    color: "#ffffff",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    backdropFilter: "blur(6px)",
+                  }}
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={28} />
+                </button>
+              </>
+            )}
+
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: zoomScale > 1 ? "auto" : "hidden",
+              }}
+            >
+              <img
+                src={carImages[selectedImgIdx] || carImages[0]}
+                alt={title}
+                onClick={() => setZoomScale((s) => (s > 1 ? 1 : 2))}
+                style={{
+                  maxWidth: zoomScale > 1 ? "none" : "94vw",
+                  maxHeight: zoomScale > 1 ? "none" : "80vh",
+                  transform: `scale(${zoomScale})`,
+                  transformOrigin: "center center",
+                  transition: "transform 0.2s ease-out",
+                  cursor: zoomScale > 1 ? "zoom-out" : "zoom-in",
+                  objectFit: "contain",
+                  borderRadius: "var(--radius-sm)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                }}
+                title="Click photo to toggle 100% / 200% zoom"
+              />
+            </div>
+          </div>
+
+          {carImages.length > 1 && (
+            <div
+              style={{
+                padding: "12px 20px",
+                background: "rgba(10, 15, 25, 0.85)",
+                borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                display: "flex",
+                justifyContent: "center",
+                gap: 10,
+                overflowX: "auto",
+                scrollbarWidth: "none",
+                WebkitOverflowScrolling: "touch",
+                zIndex: 10,
+              }}
+            >
+              {carImages.map((url, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setSelectedImgIdx(i)}
+                  style={{
+                    flexShrink: 0,
+                    width: 64,
+                    height: 48,
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    border: selectedImgIdx === i ? "2px solid var(--primary)" : "1px solid rgba(255,255,255,0.2)",
+                    padding: 0,
+                    background: "#000",
+                    cursor: "pointer",
+                    opacity: selectedImgIdx === i ? 1 : 0.5,
+                    transition: "opacity 0.2s",
+                  }}
+                >
+                  <img
+                    src={url}
+                    alt={`Thumb ${i + 1}`}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -9837,6 +10658,10 @@ function AdminSettingsTab() {
   const [address, setAddress] = useState(
     "Plot No: 25, 100 Feet Rd, Sri Rama Colony, Kavuri Hills, Madhapur, Hyderabad, Telangana 500081"
   );
+  const [showroomHoursMonSat, setShowroomHoursMonSat] = useState("Open Mon - Sat: 10:00 AM – 8:30 PM");
+  const [showroomHoursSun, setShowroomHoursSun] = useState("Sunday: 10:30 AM – 7:00 PM");
+  const [googleRatingVal, setGoogleRatingVal] = useState(4.9);
+  const [googleReviewsCountVal, setGoogleReviewsCountVal] = useState(148);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const updateSettings = useUpdateSiteSettings();
@@ -9850,6 +10675,10 @@ function AdminSettingsTab() {
       if (settings.adminName) setAdminName(settings.adminName);
       if (settings.adminPhone) setAdminPhone(settings.adminPhone);
       if (settings.adminPhoto) setAdminPhoto(settings.adminPhoto);
+      if (settings.showroomHoursMonSat) setShowroomHoursMonSat(settings.showroomHoursMonSat);
+      if (settings.showroomHoursSun) setShowroomHoursSun(settings.showroomHoursSun);
+      if (settings.googleRating !== undefined) setGoogleRatingVal(settings.googleRating);
+      if (settings.googleReviewsCount !== undefined) setGoogleReviewsCountVal(settings.googleReviewsCount);
     }
   }, [settings]);
 
@@ -9877,6 +10706,10 @@ function AdminSettingsTab() {
         phone: phone.trim(),
         whatsapp: whatsapp.trim(),
         address: address.trim(),
+        showroomHoursMonSat: showroomHoursMonSat.trim(),
+        showroomHoursSun: showroomHoursSun.trim(),
+        googleRating: Number(googleRatingVal),
+        googleReviewsCount: Number(googleReviewsCountVal),
       },
       {
         onSuccess: () => {
@@ -10060,6 +10893,58 @@ function AdminSettingsTab() {
               className="form-textarea"
               required
             />
+          </div>
+
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label className="form-label">Showroom Timings (Mon - Sat)</label>
+              <input
+                type="text"
+                value={showroomHoursMonSat}
+                onChange={(e) => setShowroomHoursMonSat(e.target.value)}
+                className="form-input"
+                placeholder="Open Mon - Sat: 10:00 AM – 8:30 PM"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Showroom Timings (Sunday)</label>
+              <input
+                type="text"
+                value={showroomHoursSun}
+                onChange={(e) => setShowroomHoursSun(e.target.value)}
+                className="form-input"
+                placeholder="Sunday: 10:30 AM – 7:00 PM"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-grid-2col">
+            <div className="form-group">
+              <label className="form-label">Google Rating (e.g. 4.9)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="1"
+                max="5"
+                value={googleRatingVal}
+                onChange={(e) => setGoogleRatingVal(Number(e.target.value))}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Total Google Reviews Count</label>
+              <input
+                type="number"
+                min="1"
+                value={googleReviewsCountVal}
+                onChange={(e) => setGoogleReviewsCountVal(Number(e.target.value))}
+                className="form-input"
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">

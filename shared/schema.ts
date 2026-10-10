@@ -166,6 +166,10 @@ export const settingsInputSchema = z.object({
   adminPhoto: z.string().trim().max(5000000).optional(),
   adminName: z.string().trim().max(100).optional(),
   adminPhone: z.string().trim().max(30).optional(),
+  showroomHoursMonSat: z.string().trim().max(120).optional(),
+  showroomHoursSun: z.string().trim().max(120).optional(),
+  googleRating: z.preprocess((val) => (val === "" || val === null || val === undefined ? undefined : Number(val)), z.number().min(1).max(5).optional()),
+  googleReviewsCount: z.preprocess((val) => (val === "" || val === null || val === undefined ? undefined : Number(val)), z.number().int().min(0).optional()),
 });
 
 export const customerInputSchema = z.object({
