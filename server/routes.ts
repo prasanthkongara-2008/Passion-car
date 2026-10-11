@@ -558,7 +558,7 @@ api.post("/customer/google-login", customerAuthLimiter, async (req, res) => {
       if (!existing) {
         await (storage as any).createCustomer({
           name: customer.name,
-          phone: "+91 88858 58380",
+          phone: "",
           email: cleanEmail,
           transactionType: "current_buyer",
           carModel: "Google Account User",
@@ -674,7 +674,7 @@ api.post("/customer/login-password", customerAuthLimiter, async (req, res) => {
     const clean = sanitizePlainString(identifier);
     const isEmail = clean.includes("@");
     const name = isEmail ? clean.split("@")[0] : `Customer ${clean.slice(-4)}`;
-    const phone = isEmail ? "+91 88858 58380" : clean;
+    const phone = isEmail ? "" : clean;
     const email = isEmail ? clean.toLowerCase() : `${clean}@passioncar.in`;
 
     const customer = {
@@ -1028,9 +1028,13 @@ api.post("/inquiries", inquiryLimiter, async (req, res, next) => {
     const inquiry = await storage.createInquiry(parsed.data);
 
     try {
+      const cleanDigits = parsed.data.phone.replace(/\D/g, "");
+      const cleanPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
       const customers = await (storage as any).getCustomers();
-      const cleanPhone = parsed.data.phone.replace(/\D/g, "");
-      const existing = customers.find((c: any) => c.phone.replace(/\D/g, "") === cleanPhone);
+      const existing = customers.find((c: any) => {
+        const d = (c.phone || "").replace(/\D/g, "");
+        return (d.length >= 10 ? d.slice(-10) : d) === cleanPhone;
+      });
       if (!existing && cleanPhone.length >= 10) {
         await (storage as any).createCustomer({
           name: parsed.data.name,
@@ -1044,6 +1048,9 @@ api.post("/inquiries", inquiryLimiter, async (req, res, next) => {
           status: "in_progress",
           notes: `[Online Inquiry: ${parsed.data.type.toUpperCase()}] ${parsed.data.message || ""}`,
         });
+      } else if (existing) {
+        const updatedNotes = `${existing.notes || ""} | [Online Inquiry: ${parsed.data.type.toUpperCase()}] ${parsed.data.message || ""}`.trim();
+        await (storage as any).updateCustomer(existing.id, { notes: updatedNotes });
       }
     } catch (_) {}
 
@@ -1481,9 +1488,13 @@ api.post("/service-booking", inquiryLimiter, async (req, res, next) => {
     });
 
     try {
+      const cleanDigits = parsed.data.phone.replace(/\D/g, "");
+      const cleanPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
       const customers = await (storage as any).getCustomers();
-      const cleanPhone = parsed.data.phone.replace(/\D/g, "");
-      const existing = customers.find((c: any) => c.phone.replace(/\D/g, "") === cleanPhone);
+      const existing = customers.find((c: any) => {
+        const d = (c.phone || "").replace(/\D/g, "");
+        return (d.length >= 10 ? d.slice(-10) : d) === cleanPhone;
+      });
       if (!existing && cleanPhone.length >= 10) {
         await (storage as any).createCustomer({
           name: parsed.data.customerName,
@@ -1499,7 +1510,11 @@ api.post("/service-booking", inquiryLimiter, async (req, res, next) => {
         });
       } else if (existing) {
         const updatedNotes = `${existing.notes || ""} | [Service Token: ${randToken}] ${parsed.data.servicePackage} on ${parsed.data.date}`.trim();
-        await (storage as any).updateCustomer(existing.id, { notes: updatedNotes });
+        await (storage as any).updateCustomer(existing.id, {
+          notes: updatedNotes,
+          carModel: existing.carModel && existing.carModel !== "Customer Account" ? existing.carModel : parsed.data.carDetails,
+          date: parsed.data.date,
+        });
       }
     } catch (_) {}
 

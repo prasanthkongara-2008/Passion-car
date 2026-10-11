@@ -12893,14 +12893,54 @@ function AdminCustomersTab() {
     notes: "",
   });
 
-  const totalClients = customers.length;
-  const boughtCount = customers.filter((c) => c.transactionType === "bought_from_dealership").length;
-  const soldCount = customers.filter((c) => c.transactionType === "sold_to_dealership").length;
-  const currentBuyersCount = customers.filter((c) => c.transactionType === "current_buyer").length;
+  const uniqueCustomers = useMemo(() => {
+    const map = new Map<string, Customer>();
+    const withoutPhone: Customer[] = [];
+    for (const c of customers) {
+      const digits = (c.phone || "").replace(/\D/g, "");
+      const key = digits.length >= 10 ? digits.slice(-10) : digits;
+      if (!key) {
+        withoutPhone.push(c);
+        continue;
+      }
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, c);
+      } else {
+        const isCurrentNewer = (c.date || "") >= (existing.date || "");
+        const bestName = c.name && c.name.length > existing.name.length ? c.name : existing.name;
+        const bestEmail = c.email || existing.email;
+        const bestCar = c.carModel && c.carModel !== "Customer Account" && c.carModel !== "Google Account User" ? c.carModel : existing.carModel;
+        const bestType = existing.transactionType !== "current_buyer" ? existing.transactionType : c.transactionType;
+        const bestReg = existing.regNumber || c.regNumber;
+        const bestAmount = existing.amountInr || c.amountInr;
+        const bestStatus = existing.status === "completed" || existing.status === "delivered" ? existing.status : c.status;
+        const mergedNotes = [existing.notes, c.notes].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" | ");
+        map.set(key, {
+          ...(isCurrentNewer ? c : existing),
+          id: existing.id,
+          name: bestName,
+          email: bestEmail,
+          carModel: bestCar,
+          transactionType: bestType,
+          regNumber: bestReg,
+          amountInr: bestAmount,
+          status: bestStatus,
+          notes: mergedNotes,
+        });
+      }
+    }
+    return [...map.values(), ...withoutPhone];
+  }, [customers]);
+
+  const totalClients = uniqueCustomers.length;
+  const boughtCount = uniqueCustomers.filter((c) => c.transactionType === "bought_from_dealership").length;
+  const soldCount = uniqueCustomers.filter((c) => c.transactionType === "sold_to_dealership").length;
+  const currentBuyersCount = uniqueCustomers.filter((c) => c.transactionType === "current_buyer").length;
   const totalTokens = serviceBookings.length;
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
+    return uniqueCustomers.filter((c) => {
       if (subTab !== "all" && subTab !== "service_slots" && c.transactionType !== subTab) {
         return false;
       }
@@ -12914,7 +12954,7 @@ function AdminCustomersTab() {
       }
       return true;
     });
-  }, [customers, subTab, searchTerm]);
+  }, [uniqueCustomers, subTab, searchTerm]);
 
   const openEditClient = (client: Customer) => {
     setEditingCustomer(client);

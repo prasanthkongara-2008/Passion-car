@@ -1012,6 +1012,51 @@ export function sanitizeVehicleImages(v: Vehicle): Vehicle {
   return { ...v, imageUrls: defaultPhotos };
 }
 
+export function normalizeCustomerPhone(phone?: string | null): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
+export function deduplicateCustomersList(list: Customer[]): Customer[] {
+  const phoneMap = new Map<string, Customer>();
+  const withoutPhone: Customer[] = [];
+  for (const c of list) {
+    const key = normalizeCustomerPhone(c.phone);
+    if (!key || key.length < 10) {
+      withoutPhone.push(c);
+      continue;
+    }
+    const existing = phoneMap.get(key);
+    if (!existing) {
+      phoneMap.set(key, c);
+    } else {
+      const isCurrentNewer = (c.date || "") >= (existing.date || "");
+      const bestName = c.name && c.name.length > existing.name.length ? c.name : existing.name;
+      const bestEmail = c.email || existing.email;
+      const bestCar = c.carModel && c.carModel !== "Customer Account" && c.carModel !== "Google Account User" ? c.carModel : existing.carModel;
+      const bestType = existing.transactionType !== "current_buyer" ? existing.transactionType : c.transactionType;
+      const bestReg = existing.regNumber || c.regNumber;
+      const bestAmount = existing.amountInr || c.amountInr;
+      const bestStatus = existing.status === "completed" || existing.status === "delivered" ? existing.status : c.status;
+      const mergedNotes = [existing.notes, c.notes].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" | ");
+      phoneMap.set(key, {
+        ...(isCurrentNewer ? c : existing),
+        id: existing.id,
+        name: bestName,
+        email: bestEmail,
+        carModel: bestCar,
+        transactionType: bestType,
+        regNumber: bestReg,
+        amountInr: bestAmount,
+        status: bestStatus,
+        notes: mergedNotes,
+      });
+    }
+  }
+  return [...phoneMap.values(), ...withoutPhone];
+}
+
 export class JsonStorage implements IStorage {
   private data: DataStore;
 
@@ -1032,6 +1077,8 @@ export class JsonStorage implements IStorage {
         if (parsed.vehicles && parsed.settings) {
           if (!parsed.customers || !Array.isArray(parsed.customers) || parsed.customers.length === 0) {
             parsed.customers = INITIAL_CUSTOMERS;
+          } else {
+            parsed.customers = deduplicateCustomersList(parsed.customers);
           }
           if (!parsed.serviceBookings || !Array.isArray(parsed.serviceBookings) || parsed.serviceBookings.length === 0) {
             parsed.serviceBookings = INITIAL_SERVICE_BOOKINGS;
@@ -1550,7 +1597,7 @@ export class JsonStorage implements IStorage {
 
   async getCustomers(filters: { type?: string; search?: string } = {}): Promise<Customer[]> {
     this.ensureFreshData();
-    let list = [...(this.data.customers || [])];
+    let list = deduplicateCustomersList(this.data.customers || []);
     if (filters.type && filters.type !== "all") {
       list = list.filter((c) => c.transactionType === filters.type);
     }
@@ -1575,6 +1622,36 @@ export class JsonStorage implements IStorage {
 
   async createCustomer(input: Omit<Customer, "id" | "createdAt">): Promise<Customer> {
     this.ensureFreshData();
+    const phoneKey = normalizeCustomerPhone(input.phone);
+    if (phoneKey && phoneKey.length >= 10) {
+      const existing = (this.data.customers || []).find(
+        (c) => normalizeCustomerPhone(c.phone) === phoneKey
+      );
+      if (existing) {
+        const updatePayload: Partial<Customer> = {};
+        if (input.name && input.name.length > existing.name.length) {
+          updatePayload.name = input.name;
+        }
+        if (input.email && !existing.email) {
+          updatePayload.email = input.email;
+        }
+        if (input.carModel && input.carModel !== "Customer Account" && input.carModel !== "Google Account User") {
+          updatePayload.carModel = input.carModel;
+        }
+        if (input.notes) {
+          const notesArr = [existing.notes, input.notes].filter(Boolean);
+          updatePayload.notes = Array.from(new Set(notesArr)).join(" | ");
+        }
+        if (input.date && (!existing.date || input.date >= existing.date)) {
+          updatePayload.date = input.date;
+        }
+        if (input.transactionType && existing.transactionType === "current_buyer") {
+          updatePayload.transactionType = input.transactionType;
+        }
+        const updated = await this.updateCustomer(existing.id, updatePayload);
+        return updated || existing;
+      }
+    }
     const nextId = (this.data.customers || []).reduce((max, c) => Math.max(max, c.id), 0) + 1;
     const now = new Date();
     const newCustomer: Customer = {
@@ -1584,6 +1661,7 @@ export class JsonStorage implements IStorage {
     };
     if (!this.data.customers) this.data.customers = [];
     this.data.customers.unshift(newCustomer);
+    this.data.customers = deduplicateCustomersList(this.data.customers);
     this.saveData();
     if (db) {
       db.insert(customers).values(input as any).returning().then(([inserted]) => {
