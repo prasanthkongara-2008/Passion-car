@@ -223,7 +223,7 @@ export type ServiceBooking = {
   servicePackage: string;
   date: string;
   timeSlot: string;
-  status: "confirmed" | "in_progress" | "completed" | "cancelled";
+  status: "confirmed" | "in_progress" | "completed" | "cancelled" | "postponed";
   notes?: string;
   createdAt: string | Date;
 };

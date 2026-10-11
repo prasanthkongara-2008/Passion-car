@@ -202,8 +202,8 @@ export class DynamoDbStorage {
     return inq;
   }
 
-  async updateInquiryStatus(id: number, status: string): Promise<Inquiry | undefined> {
-    return localStore.updateInquiryStatus(id, status);
+  async updateInquiryStatus(id: number, status: string, confirmedSlotTime?: string, slotConfirmed?: boolean): Promise<Inquiry | undefined> {
+    return localStore.updateInquiryStatus(id, status, confirmedSlotTime, slotConfirmed);
   }
 
   async replyToInquiry(id: number, data: any): Promise<Inquiry | undefined> {
@@ -286,8 +286,8 @@ export class DynamoDbStorage {
     return localStore.createServiceBooking(input);
   }
 
-  async updateServiceBookingStatus(id: number, status: string): Promise<ServiceBooking | undefined> {
-    return localStore.updateServiceBookingStatus(id, status);
+  async updateServiceBookingStatus(id: number, status: string, date?: string, timeSlot?: string): Promise<ServiceBooking | undefined> {
+    return localStore.updateServiceBookingStatus(id, status, date, timeSlot);
   }
 }
 

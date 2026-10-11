@@ -1355,12 +1355,17 @@ api.get("/admin/inquiries", requireAdmin, async (_req, res, next) => {
 api.patch("/admin/inquiries/:id", requireAdmin, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const { status } = req.body || {};
+    const { status, confirmedSlotTime, slotConfirmed } = req.body || {};
     if (!Number.isInteger(id) || id < 1 || !["new", "contacted", "completed", "closed"].includes(status)) {
       res.status(400).json({ error: "Provide a valid inquiry status (new, contacted, completed, closed)." });
       return;
     }
-    const updated = await storage.updateInquiryStatus(id, status);
+    const updated = await storage.updateInquiryStatus(
+      id,
+      status,
+      confirmedSlotTime ? sanitizePlainString(confirmedSlotTime) : undefined,
+      typeof slotConfirmed === "boolean" ? slotConfirmed : undefined
+    );
     if (!updated) {
       res.status(404).json({ error: "Inquiry not found." });
       return;
@@ -1521,12 +1526,12 @@ api.get("/admin/service-tokens", requireAdmin, async (_req, res, next) => {
 api.patch("/admin/service-tokens/:id", requireAdmin, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const { status } = req.body || {};
-    if (!Number.isInteger(id) || id < 1 || !["confirmed", "in_progress", "completed", "cancelled"].includes(status)) {
-      res.status(400).json({ error: "Valid status required (confirmed, in_progress, completed, cancelled)." });
+    const { status, date, timeSlot } = req.body || {};
+    if (!Number.isInteger(id) || id < 1 || !["confirmed", "in_progress", "completed", "cancelled", "postponed"].includes(status)) {
+      res.status(400).json({ error: "Valid status required (confirmed, in_progress, completed, cancelled, postponed)." });
       return;
     }
-    const updated = await (storage as any).updateServiceBookingStatus(id, status);
+    const updated = await (storage as any).updateServiceBookingStatus(id, status, date, timeSlot);
     if (!updated) {
       res.status(404).json({ error: "Service booking not found." });
       return;

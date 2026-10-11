@@ -55,7 +55,7 @@ export interface IStorage {
     message?: string;
     vehicleId?: number | null;
   }): Promise<Inquiry>;
-  updateInquiryStatus(id: number, status: string): Promise<Inquiry | undefined>;
+  updateInquiryStatus(id: number, status: string, confirmedSlotTime?: string, slotConfirmed?: boolean): Promise<Inquiry | undefined>;
   replyToInquiry(id: number, data: {
     reply: string;
     repliedBy?: string;
@@ -82,7 +82,7 @@ export interface IStorage {
 
   getServiceBookings(): Promise<ServiceBooking[]>;
   createServiceBooking(input: Omit<ServiceBooking, "id" | "token" | "status" | "createdAt"> & { token?: string }): Promise<ServiceBooking>;
-  updateServiceBookingStatus(id: number, status: string): Promise<ServiceBooking | undefined>;
+  updateServiceBookingStatus(id: number, status: string, date?: string, timeSlot?: string): Promise<ServiceBooking | undefined>;
   deleteServiceBooking(id: number): Promise<boolean>;
 
   getVehicleSuggestions(make: string, model: string, fuelType: string): Promise<any>;
@@ -1313,7 +1313,7 @@ export class JsonStorage implements IStorage {
     return newInquiry;
   }
 
-  async updateInquiryStatus(id: number, status: string): Promise<Inquiry | undefined> {
+  async updateInquiryStatus(id: number, status: string, confirmedSlotTime?: string, slotConfirmed?: boolean): Promise<Inquiry | undefined> {
     const idx = this.data.inquiries.findIndex((i) => i.id === id);
     if (idx === -1) return undefined;
     const inq = this.data.inquiries[idx];
@@ -1326,9 +1326,19 @@ export class JsonStorage implements IStorage {
       return { ...inq, status: "completed" };
     }
     inq.status = status;
+    if (confirmedSlotTime) {
+      (inq as any).confirmedSlotTime = confirmedSlotTime;
+      (inq as any).slotConfirmed = true;
+    }
+    if (typeof slotConfirmed === "boolean") {
+      (inq as any).slotConfirmed = slotConfirmed;
+    }
     this.saveData();
     if (db) {
-      db.update(inquiries).set({ status }).where(eq(inquiries.id, id)).catch((e) => console.error("Supabase updateInquiryStatus error:", e));
+      const updateData: any = { status };
+      if (confirmedSlotTime) updateData.confirmedSlotTime = confirmedSlotTime;
+      if (typeof slotConfirmed === "boolean") updateData.slotConfirmed = slotConfirmed;
+      db.update(inquiries).set(updateData).where(eq(inquiries.id, id)).catch((e) => console.error("Supabase updateInquiryStatus error:", e));
     }
     return inq;
   }
@@ -1650,7 +1660,7 @@ export class JsonStorage implements IStorage {
     return newBooking;
   }
 
-  async updateServiceBookingStatus(id: number, status: string): Promise<ServiceBooking | undefined> {
+  async updateServiceBookingStatus(id: number, status: string, date?: string, timeSlot?: string): Promise<ServiceBooking | undefined> {
     this.ensureFreshData();
     const idx = (this.data.serviceBookings || []).findIndex((s) => s.id === id);
     if (idx === -1) return undefined;
@@ -1664,9 +1674,18 @@ export class JsonStorage implements IStorage {
       return { ...booking, status: "completed" };
     }
     this.data.serviceBookings[idx].status = status as any;
+    if (date) {
+      this.data.serviceBookings[idx].date = date;
+    }
+    if (timeSlot) {
+      this.data.serviceBookings[idx].timeSlot = timeSlot;
+    }
     this.saveData();
     if (db) {
-      db.update(serviceBookings).set({ status }).where(eq(serviceBookings.id, id)).catch((e) => console.error("Supabase updateServiceBookingStatus error:", e));
+      const updatePayload: any = { status };
+      if (date) updatePayload.date = date;
+      if (timeSlot) updatePayload.timeSlot = timeSlot;
+      db.update(serviceBookings).set(updatePayload).where(eq(serviceBookings.id, id)).catch((e) => console.error("Supabase updateServiceBookingStatus error:", e));
     }
     return this.data.serviceBookings[idx];
   }

@@ -800,7 +800,7 @@ function PublicView({
               <li><a href="#home" className="nav-link">Home</a></li>
               <li><a href="#inventory" className="nav-link">Buy Cars</a></li>
               <li><a href="#sell" className="nav-link">Sell Car</a></li>
-              <li><a href="#services" className="nav-link">Services</a></li>
+              <li><a href="#service" className="nav-link">Services</a></li>
               <li><a href="#reviews" className="nav-link">Reviews</a></li>
               <li><a href="#contact" className="nav-link">Contact</a></li>
               <li>
@@ -823,28 +823,6 @@ function PublicView({
                   <span>My Bookings</span>
                 </button>
               </li>
-              {onGoToAdmin && (
-                <li>
-                  <button
-                    onClick={onGoToAdmin}
-                    className="nav-link"
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      font: "inherit",
-                      fontWeight: 600,
-                    }}
-                    title="Dealer Administrator Login & Controls"
-                  >
-                    <Shield size={14} className="text-red-500" />
-                    <span>Admin</span>
-                  </button>
-                </li>
-              )}
               <li>
                 {customerUser ? (
                   <button
@@ -920,10 +898,25 @@ function PublicView({
             <button
               onClick={toggleTheme}
               className="theme-toggle-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                minWidth: 76,
+                height: 36,
+                padding: "0 16px",
+                borderRadius: 9999,
+                lineHeight: 1,
+                boxSizing: "border-box",
+                overflow: "visible",
+              }}
               title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
               aria-label="Toggle light or dark theme"
             >
-              <span>{theme === "dark" ? "Light" : "Dark"}</span>
+              <span style={{ display: "inline-block", width: "100%", textAlign: "center", lineHeight: 1 }}>
+                {theme === "dark" ? "Light" : "Dark"}
+              </span>
             </button>
 
             {customerUser ? (
@@ -1966,6 +1959,34 @@ function PublicView({
                 <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6 }}>{s.desc}</p>
               </div>
             ))}
+          </div>
+
+          <div
+            style={{
+              marginTop: 40,
+              padding: "24px 28px",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-md)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 16,
+            }}
+          >
+            <div style={{ textAlign: "left", maxWidth: 600 }}>
+              <h4 style={{ color: "var(--text-main)", margin: "0 0 6px", fontSize: 18, fontWeight: 700 }}>
+                Schedule Workshop Service Appointment
+              </h4>
+              <p style={{ color: "var(--text-muted)", margin: 0, fontSize: 14 }}>
+                Choose your service package, pick your preferred date and time slot, and receive an instant official entry pass.
+              </p>
+            </div>
+            <a href="#service" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Calendar size={16} />
+              <span>Book Service · Choose Date & Time</span>
+            </a>
           </div>
         </div>
       </section>
@@ -4147,6 +4168,28 @@ function ServiceBookingSection({
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const quickDates = useMemo(() => {
+    const list: Array<{ label: string; date: string }> = [];
+    const d0 = new Date();
+    list.push({ label: "Today", date: d0.toISOString().split("T")[0] });
+    const d1 = new Date();
+    d1.setDate(d1.getDate() + 1);
+    list.push({ label: "Tomorrow", date: d1.toISOString().split("T")[0] });
+    const d2 = new Date();
+    d2.setDate(d2.getDate() + 2);
+    list.push({ label: "+2 Days", date: d2.toISOString().split("T")[0] });
+    const d3 = new Date();
+    d3.setDate(d3.getDate() + 3);
+    list.push({ label: "+3 Days", date: d3.toISOString().split("T")[0] });
+    return list;
+  }, []);
+  const timeSlots = [
+    "09:30 AM - 11:00 AM (Morning Slot)",
+    "11:00 AM - 12:30 PM (Mid-Day Slot)",
+    "02:00 PM - 03:30 PM (Afternoon Slot)",
+    "03:30 PM - 05:00 PM (Late Afternoon Slot)",
+    "05:00 PM - 06:30 PM (Evening Slot)",
+  ];
   const [form, setForm] = useState(() => ({
     name: customerUser?.name || "",
     phone: customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""),
@@ -4519,33 +4562,99 @@ function ServiceBookingSection({
                     </div>
                   </div>
 
-                  <div className="form-grid-2col">
-                    <div className="form-group">
-                      <label className="form-label">Preferred Date *</label>
-                      <input
-                        type="date"
-                        required
-                        min={todayStr}
-                        className="form-input"
-                        value={form.date}
-                        onChange={(e) => setForm({ ...form, date: e.target.value })}
-                      />
+                  <div className="form-group" style={{ marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <label className="form-label" style={{ margin: 0 }}>Preferred Service Date *</label>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Pick a date or use shortcut</span>
                     </div>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                      {quickDates.map((qd) => {
+                        const isSelected = form.date === qd.date;
+                        return (
+                          <button
+                            key={qd.date}
+                            type="button"
+                            onClick={() => setForm({ ...form, date: qd.date })}
+                            className="btn btn-sm"
+                            style={{
+                              padding: "4px 10px",
+                              fontSize: 12,
+                              background: isSelected ? "var(--primary)" : "var(--bg-deep)",
+                              color: isSelected ? "#ffffff" : "var(--text-main)",
+                              border: isSelected ? "1px solid var(--primary)" : "1px solid var(--border)",
+                              borderRadius: "var(--radius-sm)",
+                            }}
+                          >
+                            {qd.label} ({qd.date.slice(5)})
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <input
+                      type="date"
+                      required
+                      min={todayStr}
+                      className="form-input"
+                      value={form.date}
+                      onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    />
+                  </div>
 
-                    <div className="form-group">
-                      <label className="form-label">Select Time Slot *</label>
-                      <select
-                        className="form-select"
-                        value={form.timeSlot}
-                        onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
-                      >
-                        <option value="09:30 AM - 11:00 AM (Morning Slot)">09:30 AM - 11:00 AM (Morning Slot)</option>
-                        <option value="11:00 AM - 12:30 PM (Mid-Day Slot)">11:00 AM - 12:30 PM (Mid-Day Slot)</option>
-                        <option value="02:00 PM - 03:30 PM (Afternoon Slot)">02:00 PM - 03:30 PM (Afternoon Slot)</option>
-                        <option value="03:30 PM - 05:00 PM (Late Afternoon Slot)">03:30 PM - 05:00 PM (Late Afternoon Slot)</option>
-                        <option value="05:00 PM - 06:30 PM (Evening Slot)">05:00 PM - 06:30 PM (Evening Slot)</option>
-                      </select>
+                  <div className="form-group" style={{ marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <label className="form-label" style={{ margin: 0 }}>Select Workshop Time Slot *</label>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>5 Daily Workshop Batches</span>
                     </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, marginBottom: 8 }}>
+                      {timeSlots.map((slot) => {
+                        const isSelected = form.timeSlot === slot;
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => setForm({ ...form, timeSlot: slot })}
+                            style={{
+                              padding: "8px 12px",
+                              fontSize: 12,
+                              fontWeight: isSelected ? 700 : 500,
+                              textAlign: "left",
+                              background: isSelected ? "rgba(239, 68, 68, 0.15)" : "var(--bg-deep)",
+                              color: isSelected ? "var(--primary)" : "var(--text-main)",
+                              border: isSelected ? "1px solid var(--primary)" : "1px solid var(--border)",
+                              borderRadius: "var(--radius-sm)",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <span>{slot}</span>
+                            {isSelected && <Check size={13} color="var(--primary)" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "rgba(56, 189, 248, 0.08)",
+                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                      borderRadius: "var(--radius-sm)",
+                      padding: "10px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      color: "var(--text-main)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <CalendarClock size={16} color="#38bdf8" />
+                    <span>
+                      Confirmed Appointment Slot: <strong style={{ color: "#38bdf8" }}>{form.date}</strong> at <strong style={{ color: "#38bdf8" }}>{form.timeSlot}</strong>
+                    </span>
                   </div>
 
                   <div className="form-group">
@@ -6642,10 +6751,16 @@ function CustomerBookingsModal({
                             </span>
                           </div>
                           <span
-                            className={`badge ${isConfirmed ? "badge-green" : item.status === "in_progress" ? "badge-gold" : "badge-red"}`}
-                            style={{ textTransform: "capitalize", fontSize: 11 }}
+                            className={`badge ${item.status === "postponed" ? "" : isConfirmed ? "badge-green" : item.status === "in_progress" ? "badge-gold" : "badge-red"}`}
+                            style={{
+                              textTransform: "capitalize",
+                              fontSize: 11,
+                              background: item.status === "postponed" ? "rgba(168, 85, 247, 0.15)" : undefined,
+                              color: item.status === "postponed" ? "#c084fc" : undefined,
+                              border: item.status === "postponed" ? "1px solid #a855f7" : undefined,
+                            }}
                           >
-                            {item.status.replace("_", " ")}
+                            {item.status === "postponed" ? "Postponed / Rescheduled" : item.status.replace("_", " ")}
                           </span>
                         </div>
 
@@ -8335,6 +8450,28 @@ function ServiceBookingModal({
   onOpenBookings?: (phone: string) => void;
 }) {
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const quickDates = useMemo(() => {
+    const list: Array<{ label: string; date: string }> = [];
+    const d0 = new Date();
+    list.push({ label: "Today", date: d0.toISOString().split("T")[0] });
+    const d1 = new Date();
+    d1.setDate(d1.getDate() + 1);
+    list.push({ label: "Tomorrow", date: d1.toISOString().split("T")[0] });
+    const d2 = new Date();
+    d2.setDate(d2.getDate() + 2);
+    list.push({ label: "+2 Days", date: d2.toISOString().split("T")[0] });
+    const d3 = new Date();
+    d3.setDate(d3.getDate() + 3);
+    list.push({ label: "+3 Days", date: d3.toISOString().split("T")[0] });
+    return list;
+  }, []);
+  const timeSlots = [
+    "09:30 AM - 11:00 AM (Morning Slot)",
+    "11:00 AM - 12:30 PM (Mid-Day Slot)",
+    "02:00 PM - 03:30 PM (Afternoon Slot)",
+    "03:30 PM - 05:00 PM (Late Afternoon Slot)",
+    "05:00 PM - 06:30 PM (Evening Slot)",
+  ];
   const [form, setForm] = useState(() => ({
     name: customerUser?.name || "",
     phone: customerUser?.phone || (typeof window !== "undefined" ? localStorage.getItem("passioncar_last_phone") || "" : ""),
@@ -8602,33 +8739,99 @@ function ServiceBookingModal({
                 </div>
               </div>
 
-              <div className="form-grid-2col">
-                <div className="form-group">
-                  <label className="form-label">Preferred Date *</label>
-                  <input
-                    type="date"
-                    required
-                    min={todayStr}
-                    className="form-input"
-                    value={form.date}
-                    onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  />
+              <div className="form-group" style={{ marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Preferred Service Date *</label>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Pick a date or use shortcut</span>
                 </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                  {quickDates.map((qd) => {
+                    const isSelected = form.date === qd.date;
+                    return (
+                      <button
+                        key={qd.date}
+                        type="button"
+                        onClick={() => setForm({ ...form, date: qd.date })}
+                        className="btn btn-sm"
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 12,
+                          background: isSelected ? "var(--primary)" : "var(--bg-deep)",
+                          color: isSelected ? "#ffffff" : "var(--text-main)",
+                          border: isSelected ? "1px solid var(--primary)" : "1px solid var(--border)",
+                          borderRadius: "var(--radius-sm)",
+                        }}
+                      >
+                        {qd.label} ({qd.date.slice(5)})
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  type="date"
+                  required
+                  min={todayStr}
+                  className="form-input"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                />
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label">Select Time Slot *</label>
-                  <select
-                    className="form-select"
-                    value={form.timeSlot}
-                    onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
-                  >
-                    <option value="09:30 AM - 11:00 AM (Morning Slot)">09:30 AM - 11:00 AM (Morning Slot)</option>
-                    <option value="11:00 AM - 12:30 PM (Mid-Day Slot)">11:00 AM - 12:30 PM (Mid-Day Slot)</option>
-                    <option value="02:00 PM - 03:30 PM (Afternoon Slot)">02:00 PM - 03:30 PM (Afternoon Slot)</option>
-                    <option value="03:30 PM - 05:00 PM (Late Afternoon Slot)">03:30 PM - 05:00 PM (Late Afternoon Slot)</option>
-                    <option value="05:00 PM - 06:30 PM (Evening Slot)">05:00 PM - 06:30 PM (Evening Slot)</option>
-                  </select>
+              <div className="form-group" style={{ marginBottom: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Select Workshop Time Slot *</label>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>5 Daily Workshop Batches</span>
                 </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, marginBottom: 8 }}>
+                  {timeSlots.map((slot) => {
+                    const isSelected = form.timeSlot === slot;
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setForm({ ...form, timeSlot: slot })}
+                        style={{
+                          padding: "8px 12px",
+                          fontSize: 12,
+                          fontWeight: isSelected ? 700 : 500,
+                          textAlign: "left",
+                          background: isSelected ? "rgba(239, 68, 68, 0.15)" : "var(--bg-deep)",
+                          color: isSelected ? "var(--primary)" : "var(--text-main)",
+                          border: isSelected ? "1px solid var(--primary)" : "1px solid var(--border)",
+                          borderRadius: "var(--radius-sm)",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span>{slot}</span>
+                        {isSelected && <Check size={13} color="var(--primary)" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "rgba(56, 189, 248, 0.08)",
+                  border: "1px solid rgba(56, 189, 248, 0.3)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  color: "var(--text-main)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                <CalendarClock size={16} color="#38bdf8" />
+                <span>
+                  Confirmed Appointment Slot: <strong style={{ color: "#38bdf8" }}>{form.date}</strong> at <strong style={{ color: "#38bdf8" }}>{form.timeSlot}</strong>
+                </span>
               </div>
 
               <div className="form-group">
@@ -9270,8 +9473,27 @@ function AdminView({
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {toggleTheme && (
-            <button onClick={toggleTheme} className="theme-toggle-btn" title="Toggle Theme">
-              <span>{theme === "dark" ? "Light" : "Dark"}</span>
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                minWidth: 76,
+                height: 36,
+                padding: "0 16px",
+                borderRadius: 9999,
+                lineHeight: 1,
+                boxSizing: "border-box",
+                overflow: "visible",
+              }}
+              title="Toggle Theme"
+            >
+              <span style={{ display: "inline-block", width: "100%", textAlign: "center", lineHeight: 1 }}>
+                {theme === "dark" ? "Light" : "Dark"}
+              </span>
             </button>
           )}
 
@@ -10384,7 +10606,10 @@ function AdminAppointmentsTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "tomorrow" | "upcoming" | "past">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "service" | "test_drive" | "consultation">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "in_bay" | "completed" | "pending" | "cancelled">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "in_bay" | "completed" | "pending" | "cancelled" | "postponed">("all");
+  const [postponeApt, setPostponeApt] = useState<typeof allAppointments[0] | null>(null);
+  const [postponeDate, setPostponeDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [postponeSlot, setPostponeSlot] = useState("09:30 AM - 11:00 AM (Morning Slot)");
 
   const [bookModalOpen, setBookModalOpen] = useState(false);
   const [bookingForm, setBookingForm] = useState({
@@ -10526,6 +10751,12 @@ function AdminAppointmentsTab() {
   }, [allAppointments, searchTerm, dateFilter, typeFilter, statusFilter, todayStr, tomorrowStr]);
 
   const handleUpdateStatus = (apt: typeof allAppointments[0], newStatus: string) => {
+    if (newStatus === "postponed") {
+      setPostponeApt(apt);
+      setPostponeDate(apt.date || todayStr);
+      setPostponeSlot(apt.timeSlot || "09:30 AM - 11:00 AM (Morning Slot)");
+      return;
+    }
     if (apt.sourceType === "service") {
       updateTokenStatus.mutate(
         { id: apt.sourceId, status: newStatus },
@@ -10550,6 +10781,34 @@ function AdminAppointmentsTab() {
         {
           onSuccess: () => {
             setActionSuccess(`Appointment #${apt.sourceId} updated to ${newStatus}`);
+            setTimeout(() => setActionSuccess(""), 4000);
+          },
+        }
+      );
+    }
+  };
+
+  const handleSavePostpone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postponeApt) return;
+    if (postponeApt.sourceType === "service") {
+      updateTokenStatus.mutate(
+        { id: postponeApt.sourceId, status: "postponed", date: postponeDate, timeSlot: postponeSlot },
+        {
+          onSuccess: () => {
+            setActionSuccess(`Service appointment #${postponeApt.token || postponeApt.sourceId} rescheduled to ${postponeDate} (${postponeSlot})`);
+            setPostponeApt(null);
+            setTimeout(() => setActionSuccess(""), 4000);
+          },
+        }
+      );
+    } else {
+      updateInquiryStatus.mutate(
+        { id: postponeApt.sourceId, status: "contacted", confirmedSlotTime: `${postponeDate} ${postponeSlot}`, slotConfirmed: true },
+        {
+          onSuccess: () => {
+            setActionSuccess(`Appointment #${postponeApt.sourceId} rescheduled to ${postponeDate} (${postponeSlot})`);
+            setPostponeApt(null);
             setTimeout(() => setActionSuccess(""), 4000);
           },
         }
@@ -10736,6 +10995,7 @@ function AdminAppointmentsTab() {
             <option value="in_bay">In Bay / Active</option>
             <option value="pending">Pending</option>
             <option value="completed">Completed</option>
+            <option value="postponed">Postponed / Rescheduled</option>
             <option value="cancelled">Cancelled</option>
           </select>
 
@@ -10825,7 +11085,11 @@ function AdminAppointmentsTab() {
                     </div>
 
                     <div>
-                      {isToday ? (
+                      {apt.status === "postponed" ? (
+                        <span className="badge" style={{ background: "rgba(168, 85, 247, 0.15)", color: "#c084fc", border: "1px solid #a855f7", fontSize: 10, fontWeight: 700 }}>
+                          POSTPONED
+                        </span>
+                      ) : isToday ? (
                         <span className="badge badge-red" style={{ fontSize: 10, fontWeight: 800 }}>
                           TODAY
                         </span>
@@ -10847,7 +11111,9 @@ function AdminAppointmentsTab() {
                     <Clock size={13} color="var(--primary)" />
                     <span style={{ fontWeight: 600, color: "var(--text-main)" }}>{apt.timeSlot}</span>
                     <span>·</span>
-                    <span>{apt.date}</span>
+                    <span style={{ color: apt.status === "postponed" ? "#c084fc" : "inherit", fontWeight: apt.status === "postponed" ? 700 : 400 }}>
+                      {apt.status === "postponed" ? `Confirmed: ${apt.date}` : apt.date}
+                    </span>
                   </div>
 
                   <div
@@ -10880,17 +11146,41 @@ function AdminAppointmentsTab() {
                       value={apt.status}
                       onChange={(e) => handleUpdateStatus(apt, e.target.value)}
                       className="form-select"
-                      style={{ fontSize: 11, padding: "3px 8px", width: "auto" }}
+                      style={{
+                        fontSize: 11,
+                        padding: "3px 8px",
+                        width: "auto",
+                        background: apt.status === "postponed" ? "rgba(168, 85, 247, 0.15)" : "inherit",
+                        borderColor: apt.status === "postponed" ? "#a855f7" : "inherit",
+                        color: "var(--text-main)",
+                        fontWeight: 600,
+                      }}
                     >
                       <option value="confirmed">Confirmed</option>
                       <option value="in_bay">In Bay / Active</option>
                       <option value="pending">Pending</option>
                       <option value="completed">Completed</option>
+                      <option value="postponed">Postponed / Rescheduled</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
 
-                  <div style={{ display: "flex", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+                  <div style={{ display: "flex", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 12, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPostponeApt(apt);
+                        setPostponeDate(apt.date || todayStr);
+                        setPostponeSlot(apt.timeSlot || "09:30 AM - 11:00 AM (Morning Slot)");
+                      }}
+                      className="btn btn-outline btn-sm"
+                      style={{ flex: 1, justifyContent: "center", fontSize: 11, padding: "5px 8px", borderColor: "rgba(168, 85, 247, 0.4)", color: "#c084fc" }}
+                      title="Postpone and Confirm New Date"
+                    >
+                      <CalendarClock size={12} />
+                      <span>Postpone</span>
+                    </button>
+
                     <a
                       href={`tel:${cleanPhone}`}
                       className="btn btn-outline btn-sm"
@@ -11073,6 +11363,78 @@ function AdminAppointmentsTab() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {postponeApt && (
+        <div className="modal-backdrop" onClick={() => setPostponeApt(null)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 520, width: "100%", background: "var(--bg-surface)" }}
+          >
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CalendarClock size={20} color="#a855f7" />
+                <h3 style={{ margin: 0, color: "var(--text-main)", fontSize: 18, fontWeight: 700 }}>
+                  Postpone Appointment & Confirm New Date
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPostponeApt(null)}
+                className="modal-close-btn"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: 20 }}>
+              <div style={{ background: "rgba(168, 85, 247, 0.08)", border: "1px solid rgba(168, 85, 247, 0.25)", borderRadius: "var(--radius-sm)", padding: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)" }}>{postponeApt.customerName} · {postponeApt.phone}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{postponeApt.carDetails} ({postponeApt.servicePackage})</div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>Current Scheduled Date: {postponeApt.date} · {postponeApt.timeSlot}</div>
+              </div>
+
+              <form onSubmit={handleSavePostpone} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div className="form-group">
+                  <label className="form-label">New Confirmed Date *</label>
+                  <input
+                    type="date"
+                    required
+                    min={todayStr}
+                    value={postponeDate}
+                    onChange={(e) => setPostponeDate(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Confirmed Time Slot *</label>
+                  <select
+                    value={postponeSlot}
+                    onChange={(e) => setPostponeSlot(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="09:30 AM - 11:00 AM (Morning Slot)">09:30 AM - 11:00 AM (Morning Slot)</option>
+                    <option value="11:00 AM - 12:30 PM (Mid-Day Slot)">11:00 AM - 12:30 PM (Mid-Day Slot)</option>
+                    <option value="02:00 PM - 03:30 PM (Afternoon Slot)">02:00 PM - 03:30 PM (Afternoon Slot)</option>
+                    <option value="03:30 PM - 05:00 PM (Late Afternoon Slot)">03:30 PM - 05:00 PM (Late Afternoon Slot)</option>
+                    <option value="05:00 PM - 06:30 PM (Evening Slot)">05:00 PM - 06:30 PM (Evening Slot)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                  <button type="button" onClick={() => setPostponeApt(null)} className="btn btn-glass">
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" style={{ background: "#a855f7", borderColor: "#a855f7" }}>
+                    Confirm & Save New Date
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -14358,6 +14720,9 @@ function AdminServicesTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [postponeBooking, setPostponeBooking] = useState<ServiceBooking | null>(null);
+  const [postponeDate, setPostponeDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [postponeSlot, setPostponeSlot] = useState("09:30 AM - 11:00 AM (Morning Slot)");
   const [modalForm, setModalForm] = useState({
     customerName: "",
     phone: "",
@@ -14373,6 +14738,7 @@ function AdminServicesTab() {
   const confirmedCount = serviceBookings.filter((b) => b.status === "confirmed" || !b.status).length;
   const inProgressCount = serviceBookings.filter((b) => b.status === "in_progress").length;
   const completedCount = serviceBookings.filter((b) => b.status === "completed").length;
+  const postponedCount = serviceBookings.filter((b) => b.status === "postponed").length;
 
   const filtered = useMemo(() => {
     return serviceBookings.filter((b) => {
@@ -14423,6 +14789,9 @@ function AdminServicesTab() {
   };
 
   const getStatusBadge = (status: string) => {
+    if (status === "postponed") {
+      return { bg: "rgba(168, 85, 247, 0.15)", border: "#a855f7", color: "#c084fc", label: "Postponed / Rescheduled" };
+    }
     if (status === "in_progress") {
       return { bg: "rgba(245, 158, 11, 0.15)", border: "#f59e0b", color: "#f59e0b", label: "In Service Bay" };
     }
@@ -14472,6 +14841,10 @@ function AdminServicesTab() {
           <div style={{ fontSize: 26, fontWeight: 800, color: "#f59e0b", marginTop: 4 }}>{inProgressCount}</div>
         </div>
         <div className="admin-kpi-card">
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Postponed</span>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#c084fc", marginTop: 4 }}>{postponedCount}</div>
+        </div>
+        <div className="admin-kpi-card">
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Completed</span>
           <div style={{ fontSize: 26, fontWeight: 800, color: "#10b981", marginTop: 4 }}>{completedCount}</div>
         </div>
@@ -14502,6 +14875,7 @@ function AdminServicesTab() {
               <option value="all">All Statuses ({total})</option>
               <option value="confirmed">Confirmed ({confirmedCount})</option>
               <option value="in_progress">In Bay ({inProgressCount})</option>
+              <option value="postponed">Postponed ({postponedCount})</option>
               <option value="completed">Completed ({completedCount})</option>
               <option value="cancelled">Cancelled</option>
             </select>
@@ -14558,20 +14932,30 @@ function AdminServicesTab() {
                     <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Status:</span>
                     <select
                       value={b.status}
-                      onChange={(e) => updateStatus.mutate({ id: b.id, status: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "postponed") {
+                          setPostponeBooking(b);
+                          setPostponeDate(b.date || new Date().toISOString().split("T")[0]);
+                          setPostponeSlot(b.timeSlot || "09:30 AM - 11:00 AM (Morning Slot)");
+                        } else {
+                          updateStatus.mutate({ id: b.id, status: val });
+                        }
+                      }}
                       className="form-select"
                       style={{
                         padding: "3px 8px",
                         fontSize: 12,
                         fontWeight: 600,
-                        background: b.status === "completed" ? "rgba(16, 185, 129, 0.15)" : b.status === "in_progress" ? "rgba(245, 158, 11, 0.15)" : "rgba(56, 189, 248, 0.15)",
-                        borderColor: b.status === "completed" ? "#10b981" : b.status === "in_progress" ? "#f59e0b" : "#38bdf8",
+                        background: b.status === "postponed" ? "rgba(168, 85, 247, 0.15)" : b.status === "completed" ? "rgba(16, 185, 129, 0.15)" : b.status === "in_progress" ? "rgba(245, 158, 11, 0.15)" : "rgba(56, 189, 248, 0.15)",
+                        borderColor: b.status === "postponed" ? "#a855f7" : b.status === "completed" ? "#10b981" : b.status === "in_progress" ? "#f59e0b" : "#38bdf8",
                         color: "var(--text-main)",
                       }}
                     >
                       <option value="confirmed">Confirmed</option>
                       <option value="in_progress">In Bay / Servicing</option>
                       <option value="completed">Completed (Auto-Delete)</option>
+                      <option value="postponed">Postponed / Rescheduled</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                   </div>
@@ -14603,9 +14987,9 @@ function AdminServicesTab() {
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--text-main)", fontSize: 12, fontWeight: 700 }}>
-                      <Calendar size={14} color="var(--primary)" />
-                      <span>Date: {b.date}</span>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: b.status === "postponed" ? "#c084fc" : "var(--text-main)", fontSize: 12, fontWeight: 700 }}>
+                      <Calendar size={14} color={b.status === "postponed" ? "#a855f7" : "var(--primary)"} />
+                      <span>{b.status === "postponed" ? `Confirmed Date: ${b.date}` : `Date: ${b.date}`}</span>
                     </div>
 
                     <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#38bdf8", fontSize: 12, fontWeight: 700 }}>
@@ -14621,6 +15005,21 @@ function AdminServicesTab() {
                   </div>
 
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPostponeBooking(b);
+                        setPostponeDate(b.date || new Date().toISOString().split("T")[0]);
+                        setPostponeSlot(b.timeSlot || "09:30 AM - 11:00 AM (Morning Slot)");
+                      }}
+                      className="btn btn-outline btn-sm"
+                      style={{ fontSize: 11, padding: "5px 10px", borderColor: "rgba(168, 85, 247, 0.4)", color: "#c084fc" }}
+                      title="Postpone Date"
+                    >
+                      <CalendarClock size={12} />
+                      <span>Postpone Date</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -14814,6 +15213,86 @@ function AdminServicesTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {postponeBooking && (
+        <div className="modal-backdrop" onClick={() => setPostponeBooking(null)}>
+          <div className="modal-content" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CalendarClock size={20} color="#a855f7" />
+                <h3 style={{ margin: 0, color: "var(--text-main)", fontSize: 18, fontWeight: 700 }}>
+                  Postpone Service & Confirm New Date
+                </h3>
+              </div>
+              <button onClick={() => setPostponeBooking(null)} className="modal-close-btn"><X size={18} /></button>
+            </div>
+
+            <div style={{ padding: 22 }}>
+              <div style={{ background: "rgba(168, 85, 247, 0.08)", border: "1px solid rgba(168, 85, 247, 0.25)", borderRadius: "var(--radius-sm)", padding: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)" }}>#{postponeBooking.token} · {postponeBooking.customerName}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{postponeBooking.carDetails} ({postponeBooking.servicePackage})</div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>Current Scheduled Date: {postponeBooking.date} · {postponeBooking.timeSlot}</div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  updateStatus.mutate(
+                    {
+                      id: postponeBooking.id,
+                      status: "postponed",
+                      date: postponeDate,
+                      timeSlot: postponeSlot,
+                    },
+                    {
+                      onSuccess: () => {
+                        setPostponeBooking(null);
+                      },
+                    }
+                  );
+                }}
+                style={{ display: "flex", flexDirection: "column", gap: 14 }}
+              >
+                <div className="form-group">
+                  <label className="form-label">New Confirmed Date *</label>
+                  <input
+                    type="date"
+                    required
+                    min={new Date().toISOString().split("T")[0]}
+                    value={postponeDate}
+                    onChange={(e) => setPostponeDate(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Confirmed Time Slot *</label>
+                  <select
+                    value={postponeSlot}
+                    onChange={(e) => setPostponeSlot(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="09:30 AM - 11:00 AM (Morning Slot)">09:30 AM - 11:00 AM (Morning Slot)</option>
+                    <option value="11:00 AM - 12:30 PM (Mid-Day Slot)">11:00 AM - 12:30 PM (Mid-Day Slot)</option>
+                    <option value="02:00 PM - 03:30 PM (Afternoon Slot)">02:00 PM - 03:30 PM (Afternoon Slot)</option>
+                    <option value="03:30 PM - 05:00 PM (Late Afternoon Slot)">03:30 PM - 05:00 PM (Late Afternoon Slot)</option>
+                    <option value="05:00 PM - 06:30 PM (Evening Slot)">05:00 PM - 06:30 PM (Evening Slot)</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                  <button type="button" onClick={() => setPostponeBooking(null)} className="btn btn-glass">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={updateStatus.isPending} className="btn btn-primary" style={{ background: "#a855f7", borderColor: "#a855f7" }}>
+                    {updateStatus.isPending ? "Saving..." : "Save Confirmed Date"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

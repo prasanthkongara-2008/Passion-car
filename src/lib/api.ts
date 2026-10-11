@@ -581,10 +581,20 @@ export function useUploadMultipleImages() {
 export function useUpdateInquiryStatus() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: "new" | "contacted" | "completed" | "closed" }) =>
+    mutationFn: ({
+      id,
+      status,
+      confirmedSlotTime,
+      slotConfirmed,
+    }: {
+      id: number;
+      status: "new" | "contacted" | "completed" | "closed";
+      confirmedSlotTime?: string;
+      slotConfirmed?: boolean;
+    }) =>
       request<Inquiry>(`/api/admin/inquiries/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, confirmedSlotTime, slotConfirmed }),
       }),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: adminKeys.inquiries });
@@ -709,10 +719,10 @@ export function useAdminServiceTokens() {
 export function useUpdateServiceTokenStatus() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
+    mutationFn: ({ id, status, date, timeSlot }: { id: number; status: string; date?: string; timeSlot?: string }) =>
       request<ServiceBooking>(`/api/admin/service-tokens/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, date, timeSlot }),
       }),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: adminKeys.serviceTokens });
