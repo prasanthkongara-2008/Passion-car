@@ -427,6 +427,7 @@ export function useAdminSummary(enabled = true) {
     queryFn: () => request<AdminSummary>("/api/admin/summary"),
     enabled,
     retry: false,
+    refetchInterval: 12000,
   });
 }
 
@@ -445,6 +446,7 @@ export function useAdminInquiries(enabled = true) {
     queryFn: () => request<Inquiry[]>("/api/admin/inquiries"),
     enabled,
     retry: false,
+    refetchInterval: 12000,
   });
 }
 
@@ -700,6 +702,7 @@ export function useAdminServiceTokens() {
   return useQuery({
     queryKey: adminKeys.serviceTokens,
     queryFn: () => request<ServiceBooking[]>("/api/admin/service-tokens"),
+    refetchInterval: 12000,
   });
 }
 

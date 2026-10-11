@@ -40,6 +40,14 @@ import {
   Shield,
   FileText,
   Calendar,
+  CalendarCheck,
+  CalendarClock,
+  Bell,
+  BellRing,
+  BellOff,
+  Volume2,
+  VolumeX,
+  AlertCircle,
   Layers,
   Info,
   Sun,
@@ -915,8 +923,7 @@ function PublicView({
               title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
               aria-label="Toggle light or dark theme"
             >
-              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-              <span className="hidden-mobile">{theme === "dark" ? "Light" : "Dark"}</span>
+              <span>{theme === "dark" ? "Light" : "Dark"}</span>
             </button>
 
             {customerUser ? (
@@ -2474,33 +2481,6 @@ function PublicView({
                   { href: "#services", label: "Services" },
                   { href: "#reviews", label: "Reviews" },
                   { href: "#blog", label: "Blog" },
-                  { href: "#rti", label: "RTI" },
-                  { href: "#exchange", label: "Exchange" },
-                ].map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="footer-nav-link"
-                    style={{
-                      color: theme === "light" ? "#475569" : "#f1f5f9",
-                      textDecoration: "none",
-                      fontWeight: 500,
-                      transition: "color 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#ef4444";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
-                    }}
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-              <div className="footer-nav-row">
-                {[
-                  { href: "#service", label: "Service" },
                   { href: "#emi-calculator", label: "EMI Calculator" },
                   { href: "#about", label: "About" },
                   { href: "#contact", label: "Contact" },
@@ -2525,35 +2505,34 @@ function PublicView({
                     {link.label}
                   </a>
                 ))}
-                {onGoToAdmin && (
-                  <button
-                    type="button"
-                    onClick={onGoToAdmin}
-                    className="footer-nav-link"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      font: "inherit",
-                      padding: 0,
-                      color: theme === "light" ? "#475569" : "#f1f5f9",
-                      fontWeight: 600,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      transition: "color 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#ef4444";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
-                    }}
-                  >
-                    <Shield size={13} className="text-red-500" />
-                    <span>Admin Portal</span>
-                  </button>
-                )}
+                <a
+                  href="#admin"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onGoToAdmin) onGoToAdmin();
+                    else window.location.hash = "#admin";
+                  }}
+                  className="footer-nav-link"
+                  style={{
+                    color: theme === "light" ? "#475569" : "#f1f5f9",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    transition: "color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#ef4444";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
+                  }}
+                  title="Dealership Admin Portal Redirect"
+                >
+                  <Shield size={13} className="text-red-500" />
+                  <span>Admin Portal</span>
+                </a>
               </div>
             </div>
           </div>
@@ -2617,6 +2596,34 @@ function PublicView({
               >
                 <YoutubeIcon size={16} />
                 <span>@passioncars_madhapur</span>
+              </a>
+              <a
+                href="#admin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onGoToAdmin) onGoToAdmin();
+                  else window.location.hash = "#admin";
+                }}
+                style={{
+                  color: theme === "light" ? "#64748b" : "#cbd5e1",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  transition: "color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#ef4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = theme === "light" ? "#64748b" : "#cbd5e1";
+                }}
+                title="Dealership Admin Portal Redirect"
+              >
+                <Shield size={12} className="text-red-500" />
+                <span>Admin Login</span>
               </a>
             </div>
             <span>{address}</span>
@@ -8872,6 +8879,38 @@ function InquiryModal({
   );
 }
 
+function playNotificationChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(587.33, now);
+    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+    gain1.gain.setValueAtTime(0.18, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.5);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(880, now + 0.18);
+    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.35);
+    gain2.gain.setValueAtTime(0.18, now + 0.18);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.18);
+    osc2.stop(now + 0.65);
+  } catch (_) {}
+}
+
 function AdminView({
   onBackToSite,
   theme,
@@ -8883,9 +8922,13 @@ function AdminView({
 }) {
   const { data: sessionData, isLoading: loadingSession } = useAdminSession();
   const { data: summary } = useAdminSummary();
-  const [tab, setTab] = useState<"overview" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">(() => {
+  const { data: inquiries = [] } = useAdminInquiries();
+  const { data: serviceBookings = [] } = useAdminServiceTokens();
+
+  const [tab, setTab] = useState<"overview" | "appointments" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">(() => {
     if (typeof window === "undefined") return "overview";
     const h = (window.location.hash || "").toLowerCase();
+    if (h.includes("appointment")) return "appointments";
     if (h.includes("cars")) return "cars";
     if (h.includes("customers")) return "customers";
     if (h.includes("inquiries")) return "inquiries";
@@ -8895,7 +8938,222 @@ function AdminView({
     return "overview";
   });
 
-  const handleSelectTab = (newTab: "overview" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings") => {
+  const [notificationPermission, setNotificationPermission] = useState<string>(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      return Notification.permission;
+    }
+    return "unsupported";
+  });
+
+  const [notificationPanelOpen, setNotificationPanelOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [adminNotifications, setAdminNotifications] = useState<Array<{
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    type: "appointment" | "inquiry";
+    targetTab: "appointments" | "inquiries" | "services";
+    read: boolean;
+  }>>([]);
+  const [floatingToast, setFloatingToast] = useState<{
+    id: string;
+    title: string;
+    message: string;
+    type: "appointment" | "inquiry";
+  } | null>(null);
+
+  const knownInquiryIdsRef = useRef<Set<number>>(new Set());
+  const knownBookingIdsRef = useRef<Set<number>>(new Set());
+  const isInitialLoadRef = useRef(true);
+
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  const allAppointments = useMemo(() => {
+    const list: any[] = [];
+    (serviceBookings || []).forEach((b) => {
+      list.push({
+        id: `srv-${b.id}`,
+        sourceId: b.id,
+        sourceType: "service",
+        typeLabel: "Service Bay",
+        customerName: b.customerName,
+        phone: b.phone,
+        email: b.email || "",
+        carDetails: b.carDetails,
+        servicePackage: b.servicePackage || "Periodic Maintenance",
+        date: b.date,
+        timeSlot: b.timeSlot,
+        token: b.token,
+        status: b.status || "confirmed",
+        notes: b.notes || "",
+        createdAt: b.createdAt,
+      });
+    });
+
+    (inquiries || []).forEach((inq) => {
+      if (inq.type === "test_drive" || inq.type === "service" || inq.confirmedSlotTime) {
+        const isTestDrive = inq.type === "test_drive";
+        const typeLabel = isTestDrive ? "Test Drive" : (inq.type === "service" ? "Service Bay" : "Consultation");
+        let derivedDate = todayStr;
+        if (inq.confirmedSlotTime && inq.confirmedSlotTime.match(/\d{4}-\d{2}-\d{2}/)) {
+          derivedDate = inq.confirmedSlotTime.match(/\d{4}-\d{2}-\d{2}/)![0];
+        } else if (inq.createdAt) {
+          derivedDate = new Date(inq.createdAt).toISOString().split("T")[0];
+        }
+
+        list.push({
+          id: `inq-${inq.id}`,
+          sourceId: inq.id,
+          sourceType: "inquiry",
+          typeLabel,
+          customerName: inq.name,
+          phone: inq.phone,
+          email: inq.email || "",
+          carDetails: inq.vehicleId ? `Vehicle #${inq.vehicleId}` : inq.message ? inq.message.slice(0, 45) : "Showroom Appointment",
+          servicePackage: isTestDrive ? "Certified Vehicle Test Drive" : typeLabel,
+          date: derivedDate,
+          timeSlot: inq.confirmedSlotTime || "Slot Scheduled",
+          token: null,
+          status: inq.slotConfirmed ? "confirmed" : (inq.status === "completed" ? "completed" : inq.status === "closed" ? "cancelled" : "pending"),
+          notes: inq.message || "",
+          createdAt: inq.createdAt,
+        });
+      }
+    });
+
+    return list.sort((a, b) => {
+      if (a.date === b.date) {
+        return (b.sourceId || 0) - (a.sourceId || 0);
+      }
+      return b.date.localeCompare(a.date);
+    });
+  }, [serviceBookings, inquiries, todayStr]);
+
+  const todayAppointmentsCount = useMemo(() => {
+    return allAppointments.filter((a) => a.date === todayStr).length;
+  }, [allAppointments, todayStr]);
+
+  const handleRequestPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      alert("Desktop notifications are not supported on this browser.");
+      return;
+    }
+    try {
+      const res = await Notification.requestPermission();
+      setNotificationPermission(res);
+      if (res === "granted") {
+        if (soundEnabled) playNotificationChime();
+        new Notification("Passion Car Admin Alerts Active", {
+          body: "Desktop notifications enabled! You will be alerted for incoming customer appointments and leads.",
+          icon: "/images/logo.png",
+        });
+        setFloatingToast({
+          id: "perm-granted",
+          title: "Notifications Enabled!",
+          message: "You will now receive desktop popups and audio chimes for new appointments.",
+          type: "appointment",
+        });
+        setTimeout(() => setFloatingToast(null), 5000);
+      }
+    } catch (_) {}
+  };
+
+  const handleSendTestAlert = () => {
+    if (soundEnabled) playNotificationChime();
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      new Notification("Test Alert: Passion Car Admin", {
+        body: "Desktop notifications are working! Incoming appointments will alert you here.",
+        icon: "/images/logo.png",
+      });
+    }
+    setFloatingToast({
+      id: `test-${Date.now()}`,
+      title: "Test Alert Dispatched",
+      message: "Desktop alert & audio chime triggered successfully.",
+      type: "appointment",
+    });
+    setTimeout(() => setFloatingToast(null), 4000);
+  };
+
+  useEffect(() => {
+    if (!inquiries && !serviceBookings) return;
+
+    const currentInqIds = new Set((inquiries || []).map((i) => i.id));
+    const currentBookingIds = new Set((serviceBookings || []).map((b) => b.id));
+
+    if (isInitialLoadRef.current) {
+      knownInquiryIdsRef.current = currentInqIds;
+      knownBookingIdsRef.current = currentBookingIds;
+      isInitialLoadRef.current = false;
+      return;
+    }
+
+    const newInquiries = (inquiries || []).filter((i) => !knownInquiryIdsRef.current.has(i.id));
+    const newBookings = (serviceBookings || []).filter((b) => !knownBookingIdsRef.current.has(b.id));
+
+    if (newInquiries.length > 0 || newBookings.length > 0) {
+      if (soundEnabled) playNotificationChime();
+
+      const newNotifs: any[] = [];
+
+      newBookings.forEach((b) => {
+        knownBookingIdsRef.current.add(b.id);
+        const item = {
+          id: `srv-${b.id}-${Date.now()}`,
+          title: `New Service Appointment (${b.token})`,
+          message: `${b.customerName} booked ${b.servicePackage} on ${b.date} (${b.timeSlot})`,
+          time: "Just now",
+          type: "appointment" as const,
+          targetTab: "appointments" as const,
+          read: false,
+        };
+        newNotifs.push(item);
+
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          new Notification(`New Service Bay Appointment: ${b.token}`, {
+            body: `${b.customerName} booked ${b.servicePackage} on ${b.date} (${b.timeSlot}). Phone: ${b.phone}`,
+            icon: "/images/logo.png",
+          });
+        }
+      });
+
+      newInquiries.forEach((i) => {
+        knownInquiryIdsRef.current.add(i.id);
+        const isTestDrive = i.type === "test_drive";
+        const item = {
+          id: `inq-${i.id}-${Date.now()}`,
+          title: isTestDrive ? "New Test Drive Booked!" : `New Customer Lead (${i.type.toUpperCase()})`,
+          message: `${i.name} (${i.phone}) - ${i.message || i.type}`,
+          time: "Just now",
+          type: isTestDrive ? ("appointment" as const) : ("inquiry" as const),
+          targetTab: isTestDrive ? ("appointments" as const) : ("inquiries" as const),
+          read: false,
+        };
+        newNotifs.push(item);
+
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          new Notification(isTestDrive ? "🚗 New Test Drive Appointment!" : `🔔 New Customer Lead: ${i.name}`, {
+            body: `${i.type.toUpperCase()}: ${i.phone} - ${i.message || "Customer inquiry received."}`,
+            icon: "/images/logo.png",
+          });
+        }
+      });
+
+      if (newNotifs.length > 0) {
+        setAdminNotifications((prev) => [...newNotifs, ...prev].slice(0, 30));
+        setFloatingToast({
+          id: newNotifs[0].id,
+          title: newNotifs[0].title,
+          message: newNotifs[0].message,
+          type: newNotifs[0].type,
+        });
+        setTimeout(() => setFloatingToast(null), 6000);
+      }
+    }
+  }, [inquiries, serviceBookings, soundEnabled]);
+
+  const handleSelectTab = (newTab: "overview" | "appointments" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings") => {
     setTab(newTab);
     const targetHash = `#admin/${newTab}`;
     if (window.location.hash !== targetHash) {
@@ -8909,7 +9167,8 @@ function AdminView({
         setTab(window.history.state.adminTab);
       } else {
         const h = (window.location.hash || "").toLowerCase();
-        if (h.includes("cars")) setTab("cars");
+        if (h.includes("appointment")) setTab("appointments");
+        else if (h.includes("cars")) setTab("cars");
         else if (h.includes("customers")) setTab("customers");
         else if (h.includes("inquiries")) setTab("inquiries");
         else if (h.includes("services")) setTab("services");
@@ -8940,7 +9199,6 @@ function AdminView({
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-deep)", color: "var(--text-main)" }}>
-      
       <header
         style={{
           background: "var(--bg-dark)",
@@ -8962,7 +9220,6 @@ function AdminView({
             />
           </div>
 
-          
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {sessionData.user?.photo ? (
               <img
@@ -9014,10 +9271,190 @@ function AdminView({
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           {toggleTheme && (
             <button onClick={toggleTheme} className="theme-toggle-btn" title="Toggle Theme">
-              {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-              <span className="hidden-mobile">{theme === "dark" ? "Light" : "Dark"}</span>
+              <span>{theme === "dark" ? "Light" : "Dark"}</span>
             </button>
           )}
+
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setNotificationPanelOpen((v) => !v)}
+              className="btn btn-outline btn-sm"
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                borderColor: notificationPermission === "granted" ? "rgba(16, 185, 129, 0.5)" : "var(--border)",
+              }}
+              title="Notifications & Alerts Center"
+            >
+              {notificationPermission === "granted" ? (
+                <BellRing size={15} color="#10b981" />
+              ) : notificationPermission === "denied" ? (
+                <BellOff size={15} color="#ef4444" />
+              ) : (
+                <Bell size={15} color="#f59e0b" />
+              )}
+              <span className="hidden-mobile">Alerts</span>
+              {adminNotifications.filter((n) => !n.read).length > 0 && (
+                <span
+                  style={{
+                    background: "#ef4444",
+                    color: "#fff",
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: "1px 5px",
+                    borderRadius: 999,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {adminNotifications.filter((n) => !n.read).length}
+                </span>
+              )}
+            </button>
+
+            {notificationPanelOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  marginTop: 8,
+                  width: 340,
+                  maxWidth: "90vw",
+                  background: "var(--bg-dark)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-md)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.6)",
+                  zIndex: 9999,
+                  padding: 16,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <BellRing size={16} color="var(--primary)" />
+                    <span>Notification Center</span>
+                  </div>
+                  <button
+                    onClick={() => setNotificationPanelOpen(false)}
+                    style={{ background: "transparent", border: 0, color: "var(--text-muted)", cursor: "pointer", padding: 2 }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    background: "var(--bg-deep)",
+                    padding: 12,
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--border)",
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)" }}>Desktop Notifications</span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        background:
+                          notificationPermission === "granted"
+                            ? "rgba(16, 185, 129, 0.15)"
+                            : notificationPermission === "denied"
+                            ? "rgba(239, 68, 68, 0.15)"
+                            : "rgba(245, 158, 11, 0.15)",
+                        color:
+                          notificationPermission === "granted"
+                            ? "#10b981"
+                            : notificationPermission === "denied"
+                            ? "#ef4444"
+                            : "#f59e0b",
+                      }}
+                    >
+                      {notificationPermission === "granted" ? "ACTIVE" : notificationPermission === "denied" ? "BLOCKED" : "ACTION REQUIRED"}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: 11, color: "var(--text-dim)", margin: "0 0 8px", lineHeight: 1.4 }}>
+                    {notificationPermission === "granted"
+                      ? "Push alerts active for new test drives, bookings, and inquiries."
+                      : notificationPermission === "denied"
+                      ? "Notifications blocked in your browser. Click the lock icon in the browser address bar to allow."
+                      : "Allow permissions to get desktop alerts even when working in another tab."}
+                  </p>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {notificationPermission !== "granted" ? (
+                      <button onClick={handleRequestPermission} className="btn btn-primary btn-sm" style={{ fontSize: 11, padding: "5px 10px" }}>
+                        Allow Desktop Alerts
+                      </button>
+                    ) : (
+                      <button onClick={handleSendTestAlert} className="btn btn-outline btn-sm" style={{ fontSize: 11, padding: "5px 10px" }}>
+                        Send Test Alert
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setSoundEnabled((v) => !v)}
+                      className="btn btn-glass btn-sm"
+                      style={{ fontSize: 11, padding: "5px 10px", display: "flex", alignItems: "center", gap: 4 }}
+                      title="Toggle sound chime"
+                    >
+                      {soundEnabled ? <Volume2 size={12} color="#10b981" /> : <VolumeX size={12} color="#ef4444" />}
+                      <span>{soundEnabled ? "Sound On" : "Sound Muted"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>Recent Alerts ({adminNotifications.length})</span>
+                  {adminNotifications.length > 0 && (
+                    <button
+                      onClick={() => setAdminNotifications([])}
+                      style={{ background: "transparent", border: 0, color: "var(--primary)", fontSize: 11, cursor: "pointer", fontWeight: 600 }}
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                  {adminNotifications.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "18px 8px", color: "var(--text-dim)", fontSize: 12 }}>
+                      No incoming alerts yet. Live listening active...
+                    </div>
+                  ) : (
+                    adminNotifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          handleSelectTab(notif.targetTab);
+                          setNotificationPanelOpen(false);
+                        }}
+                        style={{
+                          background: "var(--bg-deep)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-sm)",
+                          padding: "8px 10px",
+                          cursor: "pointer",
+                          transition: "border-color 0.2s",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)" }}>{notif.title}</span>
+                          <span style={{ fontSize: 10, color: "var(--text-dim)" }}>{notif.time}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{notif.message}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           <button onClick={onBackToSite} className="btn btn-outline btn-sm">
             <Eye size={14} />
@@ -9027,7 +9464,81 @@ function AdminView({
         </div>
       </header>
 
-      
+      {notificationPermission === "default" && (
+        <div
+          style={{
+            background: "linear-gradient(90deg, rgba(245, 158, 11, 0.15) 0%, rgba(239, 68, 68, 0.15) 100%)",
+            borderBottom: "1px solid rgba(245, 158, 11, 0.3)",
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <BellRing size={18} color="#f59e0b" />
+            <span style={{ fontSize: 13, color: "var(--text-main)", fontWeight: 600 }}>
+              Enable desktop notifications to receive instant sound alerts and popups on your screen whenever new appointments or inquiries arrive.
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={handleRequestPermission} className="btn btn-primary btn-sm">
+              Allow Notifications
+            </button>
+            <button onClick={() => setNotificationPermission("dismissed")} className="btn btn-glass btn-sm" style={{ padding: "4px 8px" }}>
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {floatingToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 9999,
+            background: "var(--bg-dark)",
+            border: "1px solid var(--primary)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+            borderRadius: "var(--radius-md)",
+            padding: "14px 18px",
+            maxWidth: 380,
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start",
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(239, 68, 68, 0.2)",
+              color: "var(--primary)",
+              padding: 8,
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <BellRing size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-main)", marginBottom: 2 }}>
+              {floatingToast.title}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+              {floatingToast.message}
+            </div>
+          </div>
+          <button
+            onClick={() => setFloatingToast(null)}
+            style={{ background: "transparent", border: 0, color: "var(--text-muted)", cursor: "pointer", padding: 2 }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           background: "var(--bg-surface)",
@@ -9040,6 +9551,11 @@ function AdminView({
         <div style={{ display: "flex", gap: 14, minWidth: "max-content" }}>
           {[
             { id: "overview", label: "Dashboard", icon: Layers },
+            {
+              id: "appointments",
+              label: `Appointments${allAppointments.length > 0 ? ` (${todayAppointmentsCount > 0 ? `${todayAppointmentsCount} Today` : allAppointments.length})` : ""}`,
+              icon: CalendarCheck,
+            },
             { id: "cars", label: "Cars Inventory", icon: Car },
             {
               id: "customers",
@@ -9053,7 +9569,7 @@ function AdminView({
             },
             {
               id: "services",
-              label: `Service Bookings${summary?.pendingServiceBookings ? ` (${summary.pendingServiceBookings} New)` : summary?.totalServiceBookings ? ` (${summary.totalServiceBookings})` : ""}`,
+              label: `Service Bay${summary?.pendingServiceBookings ? ` (${summary.pendingServiceBookings} New)` : summary?.totalServiceBookings ? ` (${summary.totalServiceBookings})` : ""}`,
               icon: Wrench,
             },
             { id: "gallery", label: "Showroom Gallery", icon: ImageIcon },
@@ -9087,6 +9603,7 @@ function AdminView({
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 16px" }}>
         {tab === "overview" && (
           <AdminOverviewTab
+            onGoToAppointments={() => handleSelectTab("appointments")}
             onGoToCars={() => handleSelectTab("cars")}
             onGoToCustomers={() => handleSelectTab("customers")}
             onGoToInquiries={() => handleSelectTab("inquiries")}
@@ -9094,6 +9611,7 @@ function AdminView({
             onGoToGallery={() => handleSelectTab("gallery")}
           />
         )}
+        {tab === "appointments" && <AdminAppointmentsTab />}
         {tab === "cars" && <AdminCarsTab />}
         {tab === "customers" && <AdminCustomersTab />}
         {tab === "inquiries" && <AdminInquiriesTab />}
@@ -9631,12 +10149,14 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
 }
 
 function AdminOverviewTab({
+  onGoToAppointments,
   onGoToCars,
   onGoToCustomers,
   onGoToInquiries,
   onGoToServices,
   onGoToGallery,
 }: {
+  onGoToAppointments?: () => void;
   onGoToCars: () => void;
   onGoToCustomers?: () => void;
   onGoToInquiries?: () => void;
@@ -9650,6 +10170,8 @@ function AdminOverviewTab({
     return <div style={{ padding: 40, textAlign: "center" }}><RefreshCw className="animate-spin" size={24} /></div>;
   }
 
+  const confirmedAppointmentsCount = (summary.totalServiceBookings ?? 0) + inquiries.filter((i) => i.type === "test_drive" || i.slotConfirmed).length;
+
   return (
     <div>
       <h2 style={{ color: "var(--text-main)", marginBottom: 24 }}>Dealership Performance Overview</h2>
@@ -9660,14 +10182,22 @@ function AdminOverviewTab({
           <div style={{ fontSize: 32, fontWeight: 800, color: "#38bdf8", marginTop: 6 }}>{summary.availableVehicles}</div>
         </div>
 
+        <div
+          onClick={onGoToAppointments}
+          style={{ background: "var(--bg-surface)", padding: 24, borderRadius: "var(--radius-md)", border: "1px solid var(--border)", cursor: onGoToAppointments ? "pointer" : "default" }}
+        >
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Confirmed Appointments</span>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "var(--primary)", marginTop: 6 }}>{confirmedAppointmentsCount}</div>
+        </div>
+
         <div style={{ background: "var(--bg-surface)", padding: 24, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Cars Sold (Site Counter)</span>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "var(--primary)", marginTop: 6 }}>{summary.carsSoldCounter}+</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "var(--accent-gold)", marginTop: 6 }}>{summary.carsSoldCounter}+</div>
         </div>
 
         <div style={{ background: "var(--bg-surface)", padding: 24, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Tracked Clients</span>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "var(--accent-gold)", marginTop: 6 }}>{summary.totalCustomers ?? 0}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "#a855f7", marginTop: 6 }}>{summary.totalCustomers ?? 0}</div>
         </div>
 
         <div
@@ -9683,12 +10213,18 @@ function AdminOverviewTab({
         <div>
           <h3 style={{ color: "var(--text-main)", marginBottom: 8 }}>Quick Dealer Management Actions</h3>
           <p style={{ color: "var(--text-muted)", margin: 0, fontSize: 14 }}>
-            Add or edit inventory vehicles, list clients (buyers/sellers), or manage booked service slot tokens.
+            Add or edit inventory vehicles, view all customer appointments, list clients, or manage booked service slot tokens.
           </p>
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {onGoToAppointments && (
+            <button onClick={onGoToAppointments} className="btn btn-primary">
+              <CalendarCheck size={16} />
+              <span>All Appointments ({confirmedAppointmentsCount})</span>
+            </button>
+          )}
           {onGoToCars && (
-            <button onClick={onGoToCars} className="btn btn-primary">
+            <button onClick={onGoToCars} className="btn btn-outline">
               <Car size={16} />
               <span>Cars Inventory ({summary.totalVehicles ?? 0})</span>
             </button>
@@ -9829,6 +10365,714 @@ function AdminOverviewTab({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminAppointmentsTab() {
+  const { data: serviceBookings = [], isLoading: loadingBookings } = useAdminServiceTokens();
+  const { data: inquiries = [], isLoading: loadingInquiries } = useAdminInquiries();
+  const updateTokenStatus = useUpdateServiceTokenStatus();
+  const updateInquiryStatus = useUpdateInquiryStatus();
+  const deleteToken = useDeleteServiceToken();
+  const deleteInquiry = useDeleteInquiry();
+  const bookService = useBookServiceSlot();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "tomorrow" | "upcoming" | "past">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "service" | "test_drive" | "consultation">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "in_bay" | "completed" | "pending" | "cancelled">("all");
+
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [bookingForm, setBookingForm] = useState({
+    customerName: "",
+    phone: "",
+    email: "",
+    carDetails: "",
+    servicePackage: "Periodic Maintenance & 50-Pt Inspection",
+    date: new Date().toISOString().split("T")[0],
+    timeSlot: "10:30 AM",
+    notes: "",
+  });
+  const [actionSuccess, setActionSuccess] = useState("");
+
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const tomorrowStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  }, []);
+
+  const allAppointments = useMemo(() => {
+    const list: Array<{
+      id: string;
+      sourceId: number;
+      sourceType: "service" | "inquiry";
+      typeLabel: string;
+      customerName: string;
+      phone: string;
+      email: string;
+      carDetails: string;
+      servicePackage: string;
+      date: string;
+      timeSlot: string;
+      token: string | null;
+      status: string;
+      notes: string;
+      createdAt: string | Date | null | undefined;
+    }> = [];
+
+    (serviceBookings || []).forEach((b) => {
+      list.push({
+        id: `srv-${b.id}`,
+        sourceId: b.id,
+        sourceType: "service",
+        typeLabel: "Service Bay",
+        customerName: b.customerName,
+        phone: b.phone,
+        email: b.email || "",
+        carDetails: b.carDetails,
+        servicePackage: b.servicePackage || "Periodic Maintenance",
+        date: b.date,
+        timeSlot: b.timeSlot,
+        token: b.token,
+        status: b.status || "confirmed",
+        notes: b.notes || "",
+        createdAt: b.createdAt,
+      });
+    });
+
+    (inquiries || []).forEach((inq) => {
+      if (inq.type === "test_drive" || inq.type === "service" || inq.confirmedSlotTime) {
+        const isTestDrive = inq.type === "test_drive";
+        const typeLabel = isTestDrive ? "Test Drive" : (inq.type === "service" ? "Service Bay" : "Consultation");
+        let derivedDate = todayStr;
+        if (inq.confirmedSlotTime && inq.confirmedSlotTime.match(/\d{4}-\d{2}-\d{2}/)) {
+          derivedDate = inq.confirmedSlotTime.match(/\d{4}-\d{2}-\d{2}/)![0];
+        } else if (inq.createdAt) {
+          derivedDate = new Date(inq.createdAt).toISOString().split("T")[0];
+        }
+
+        list.push({
+          id: `inq-${inq.id}`,
+          sourceId: inq.id,
+          sourceType: "inquiry",
+          typeLabel,
+          customerName: inq.name,
+          phone: inq.phone,
+          email: inq.email || "",
+          carDetails: inq.vehicleId ? `Vehicle #${inq.vehicleId}` : inq.message ? inq.message.slice(0, 45) : "Showroom Appointment",
+          servicePackage: isTestDrive ? "Certified Vehicle Test Drive" : typeLabel,
+          date: derivedDate,
+          timeSlot: inq.confirmedSlotTime || "Slot Scheduled",
+          token: null,
+          status: inq.slotConfirmed ? "confirmed" : (inq.status === "completed" ? "completed" : inq.status === "closed" ? "cancelled" : "pending"),
+          notes: inq.message || "",
+          createdAt: inq.createdAt,
+        });
+      }
+    });
+
+    return list.sort((a, b) => {
+      if (a.date === b.date) {
+        return (b.sourceId || 0) - (a.sourceId || 0);
+      }
+      return b.date.localeCompare(a.date);
+    });
+  }, [serviceBookings, inquiries, todayStr]);
+
+  const stats = useMemo(() => {
+    const todayCount = allAppointments.filter((a) => a.date === todayStr).length;
+    const confirmedCount = allAppointments.filter((a) => a.status === "confirmed" || a.status === "in_bay").length;
+    const pendingCount = allAppointments.filter((a) => a.status === "pending").length;
+    return {
+      total: allAppointments.length,
+      today: todayCount,
+      confirmed: confirmedCount,
+      pending: pendingCount,
+    };
+  }, [allAppointments, todayStr]);
+
+  const filteredAppointments = useMemo(() => {
+    return allAppointments.filter((a) => {
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const match =
+          a.customerName.toLowerCase().includes(q) ||
+          a.phone.toLowerCase().includes(q) ||
+          a.carDetails.toLowerCase().includes(q) ||
+          a.servicePackage.toLowerCase().includes(q) ||
+          (a.token && a.token.toLowerCase().includes(q)) ||
+          a.notes.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+
+      if (dateFilter === "today" && a.date !== todayStr) return false;
+      if (dateFilter === "tomorrow" && a.date !== tomorrowStr) return false;
+      if (dateFilter === "upcoming" && a.date < todayStr) return false;
+      if (dateFilter === "past" && a.date >= todayStr) return false;
+
+      if (typeFilter === "service" && a.sourceType !== "service") return false;
+      if (typeFilter === "test_drive" && (a.sourceType !== "inquiry" || a.typeLabel !== "Test Drive")) return false;
+      if (typeFilter === "consultation" && (a.sourceType !== "inquiry" || a.typeLabel !== "Consultation")) return false;
+
+      if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
+      return true;
+    });
+  }, [allAppointments, searchTerm, dateFilter, typeFilter, statusFilter, todayStr, tomorrowStr]);
+
+  const handleUpdateStatus = (apt: typeof allAppointments[0], newStatus: string) => {
+    if (apt.sourceType === "service") {
+      updateTokenStatus.mutate(
+        { id: apt.sourceId, status: newStatus },
+        {
+          onSuccess: () => {
+            setActionSuccess(`Service appointment #${apt.token || apt.sourceId} updated to ${newStatus}`);
+            setTimeout(() => setActionSuccess(""), 4000);
+          },
+        }
+      );
+    } else {
+      const mappedStatus: "new" | "contacted" | "completed" | "closed" =
+        newStatus === "completed"
+          ? "completed"
+          : newStatus === "cancelled"
+          ? "closed"
+          : newStatus === "in_bay"
+          ? "contacted"
+          : "new";
+      updateInquiryStatus.mutate(
+        { id: apt.sourceId, status: mappedStatus },
+        {
+          onSuccess: () => {
+            setActionSuccess(`Appointment #${apt.sourceId} updated to ${newStatus}`);
+            setTimeout(() => setActionSuccess(""), 4000);
+          },
+        }
+      );
+    }
+  };
+
+  const handleDelete = (apt: typeof allAppointments[0]) => {
+    if (!window.confirm(`Are you sure you want to delete this appointment for ${apt.customerName}?`)) return;
+    if (apt.sourceType === "service") {
+      deleteToken.mutate(apt.sourceId, {
+        onSuccess: () => {
+          setActionSuccess(`Appointment record removed.`);
+          setTimeout(() => setActionSuccess(""), 4000);
+        },
+      });
+    } else {
+      deleteInquiry.mutate(apt.sourceId, {
+        onSuccess: () => {
+          setActionSuccess(`Inquiry record removed.`);
+          setTimeout(() => setActionSuccess(""), 4000);
+        },
+      });
+    }
+  };
+
+  const handleBookSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    bookService.mutate(
+      {
+        customerName: bookingForm.customerName.trim(),
+        phone: bookingForm.phone.trim(),
+        email: bookingForm.email.trim(),
+        carDetails: bookingForm.carDetails.trim(),
+        servicePackage: bookingForm.servicePackage,
+        date: bookingForm.date,
+        timeSlot: bookingForm.timeSlot,
+        notes: bookingForm.notes.trim(),
+      },
+      {
+        onSuccess: (data) => {
+          setBookModalOpen(false);
+          setActionSuccess(`New Appointment Booked Successfully! Token: ${data.token}`);
+          setBookingForm({
+            customerName: "",
+            phone: "",
+            email: "",
+            carDetails: "",
+            servicePackage: "Periodic Maintenance & 50-Pt Inspection",
+            date: todayStr,
+            timeSlot: "10:30 AM",
+            notes: "",
+          });
+          setTimeout(() => setActionSuccess(""), 5000);
+        },
+      }
+    );
+  };
+
+  const isLoading = loadingBookings || loadingInquiries;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <h2 style={{ color: "var(--text-main)", margin: 0, fontSize: 24, fontWeight: 800 }}>Dealership Appointment Schedule</h2>
+          <p style={{ color: "var(--text-muted)", margin: "4px 0 0", fontSize: 14 }}>
+            All customer test drives, showroom consultations, and service bay reservations in one live schedule.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setBookModalOpen(true)} className="btn btn-primary btn-sm">
+            <Plus size={14} />
+            <span>Book Appointment</span>
+          </button>
+        </div>
+      </div>
+
+      {actionSuccess && (
+        <div
+          style={{
+            background: "rgba(16, 185, 129, 0.15)",
+            border: "1px solid rgba(16, 185, 129, 0.4)",
+            color: "#34d399",
+            padding: "10px 16px",
+            borderRadius: "var(--radius-sm)",
+            marginBottom: 20,
+            fontSize: 13,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <CheckCircle2 size={16} />
+          <span>{actionSuccess}</span>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 16, marginBottom: 24 }}>
+        <div style={{ background: "var(--bg-surface)", padding: 20, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Total All Appointments</span>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#38bdf8", marginTop: 4 }}>{stats.total}</div>
+        </div>
+
+        <div style={{ background: "var(--bg-surface)", padding: 20, borderRadius: "var(--radius-md)", border: stats.today > 0 ? "1px solid rgba(239, 68, 68, 0.5)" : "1px solid var(--border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Scheduled Today</span>
+            {stats.today > 0 && <span className="badge badge-red" style={{ fontSize: 10 }}>TODAY</span>}
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "var(--primary)", marginTop: 4 }}>{stats.today}</div>
+        </div>
+
+        <div style={{ background: "var(--bg-surface)", padding: 20, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Confirmed & Active</span>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "var(--accent-green)", marginTop: 4 }}>{stats.confirmed}</div>
+        </div>
+
+        <div style={{ background: "var(--bg-surface)", padding: 20, borderRadius: "var(--radius-md)", border: "1px solid var(--border)" }}>
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Pending Action</span>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "var(--accent-gold)", marginTop: 4 }}>{stats.pending}</div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: "var(--bg-surface)",
+          padding: 16,
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--border)",
+          marginBottom: 24,
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ position: "relative", flex: "1 1 240px" }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }} />
+          <input
+            type="text"
+            placeholder="Search by customer name, phone, car, token..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="form-input"
+            style={{ paddingLeft: 36, width: "100%", fontSize: 13 }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value as any)}
+            className="form-select"
+            style={{ fontSize: 13, minWidth: 140 }}
+          >
+            <option value="all">All Dates</option>
+            <option value="today">Scheduled Today</option>
+            <option value="tomorrow">Scheduled Tomorrow</option>
+            <option value="upcoming">Upcoming Future</option>
+            <option value="past">Past Records</option>
+          </select>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as any)}
+            className="form-select"
+            style={{ fontSize: 13, minWidth: 140 }}
+          >
+            <option value="all">All Types</option>
+            <option value="service">Service Bay</option>
+            <option value="test_drive">Test Drives</option>
+            <option value="consultation">Showroom Consultations</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="form-select"
+            style={{ fontSize: 13, minWidth: 130 }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in_bay">In Bay / Active</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          {(searchTerm || dateFilter !== "all" || typeFilter !== "all" || statusFilter !== "all") && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setDateFilter("all");
+                setTypeFilter("all");
+                setStatusFilter("all");
+              }}
+              className="btn btn-glass btn-sm"
+              style={{ fontSize: 12 }}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div style={{ padding: 48, textAlign: "center" }}>
+          <RefreshCw className="animate-spin" size={24} style={{ color: "var(--primary)" }} />
+        </div>
+      ) : filteredAppointments.length === 0 ? (
+        <div
+          style={{
+            background: "var(--bg-surface)",
+            padding: 48,
+            borderRadius: "var(--radius-md)",
+            border: "1px dashed var(--border)",
+            textAlign: "center",
+          }}
+        >
+          <CalendarClock size={36} color="var(--text-dim)" style={{ margin: "0 auto 12px" }} />
+          <h4 style={{ color: "var(--text-main)", fontSize: 16, margin: "0 0 6px" }}>No Appointments Found</h4>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 16px" }}>
+            No records matched your search filters.
+          </p>
+          <button onClick={() => setBookModalOpen(true)} className="btn btn-primary btn-sm">
+            <Plus size={14} />
+            <span>Book New Appointment</span>
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: 16 }}>
+          {filteredAppointments.map((apt) => {
+            const isToday = apt.date === todayStr;
+            const isTomorrow = apt.date === tomorrowStr;
+            const cleanPhone = apt.phone.replace(/[^0-9]/g, "");
+
+            return (
+              <div
+                key={apt.id}
+                style={{
+                  background: isToday ? "rgba(239, 68, 68, 0.04)" : "var(--bg-surface)",
+                  border: isToday ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid var(--border)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "18px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  boxShadow: isToday ? "0 4px 18px rgba(239, 68, 68, 0.1)" : "none",
+                  transition: "all 0.2s",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span
+                        className={`badge ${
+                          apt.typeLabel === "Service Bay"
+                            ? "badge-green"
+                            : apt.typeLabel === "Test Drive"
+                            ? "badge-gold"
+                            : "badge-blue"
+                        }`}
+                        style={{ fontSize: 11 }}
+                      >
+                        {apt.typeLabel}
+                      </span>
+                      {apt.token && (
+                        <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--primary)", fontWeight: 700 }}>
+                          {apt.token}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      {isToday ? (
+                        <span className="badge badge-red" style={{ fontSize: 10, fontWeight: 800 }}>
+                          TODAY
+                        </span>
+                      ) : isTomorrow ? (
+                        <span className="badge badge-gold" style={{ fontSize: 10, fontWeight: 700 }}>
+                          TOMORROW
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 600 }}>{apt.date}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <h3 style={{ color: "var(--text-main)", margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>
+                    {apt.customerName}
+                  </h3>
+
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Clock size={13} color="var(--primary)" />
+                    <span style={{ fontWeight: 600, color: "var(--text-main)" }}>{apt.timeSlot}</span>
+                    <span>·</span>
+                    <span>{apt.date}</span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "var(--bg-deep)",
+                      padding: "10px 12px",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border)",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)" }}>
+                      {apt.carDetails}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
+                      {apt.servicePackage}
+                    </div>
+                    {apt.notes && (
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, fontStyle: "italic", borderTop: "1px dashed var(--border)", paddingTop: 4 }}>
+                        "{apt.notes}"
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: "var(--text-dim)", fontWeight: 600 }}>Status:</span>
+                    <select
+                      value={apt.status}
+                      onChange={(e) => handleUpdateStatus(apt, e.target.value)}
+                      className="form-select"
+                      style={{ fontSize: 11, padding: "3px 8px", width: "auto" }}
+                    >
+                      <option value="confirmed">Confirmed</option>
+                      <option value="in_bay">In Bay / Active</option>
+                      <option value="pending">Pending</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+                    <a
+                      href={`tel:${cleanPhone}`}
+                      className="btn btn-outline btn-sm"
+                      style={{ flex: 1, justifyContent: "center", fontSize: 11, padding: "5px 8px" }}
+                    >
+                      <Phone size={12} color="var(--primary)" />
+                      <span>Call</span>
+                    </a>
+
+                    <a
+                      href={`https://wa.me/${cleanPhone}?text=Hello%20${encodeURIComponent(apt.customerName)},%20regarding%20your%20Passion%20Car%20appointment...`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-glass btn-sm"
+                      style={{ flex: 1, justifyContent: "center", fontSize: 11, padding: "5px 8px", color: "#34d399" }}
+                    >
+                      <MessageSquare size={12} />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    <button
+                      onClick={() => handleDelete(apt)}
+                      className="btn btn-glass btn-sm"
+                      style={{ padding: "5px 8px", color: "var(--text-dim)" }}
+                      title="Delete appointment"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {bookModalOpen && (
+        <div className="modal-backdrop" onClick={() => setBookModalOpen(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 520, width: "100%", background: "var(--bg-surface)" }}
+          >
+            <div className="modal-header">
+              <h3 style={{ margin: 0, color: "var(--text-main)", fontSize: 18, fontWeight: 700 }}>
+                Book Dealership Appointment
+              </h3>
+              <button
+                type="button"
+                onClick={() => setBookModalOpen(false)}
+                className="modal-close-btn"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleBookSubmit} style={{ padding: 20 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <label className="form-label">Customer Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingForm.customerName}
+                    onChange={(e) => setBookingForm((prev) => ({ ...prev, customerName: e.target.value }))}
+                    placeholder="e.g. Rahul Sharma"
+                    className="form-input"
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label className="form-label">Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={bookingForm.phone}
+                      onChange={(e) => setBookingForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      placeholder="+91 98765 43210"
+                      className="form-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Email Address</label>
+                    <input
+                      type="email"
+                      value={bookingForm.email}
+                      onChange={(e) => setBookingForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="client@gmail.com"
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label">Vehicle Make / Model *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingForm.carDetails}
+                    onChange={(e) => setBookingForm((prev) => ({ ...prev, carDetails: e.target.value }))}
+                    placeholder="e.g. 2021 BMW 530d M-Sport (TS09...)"
+                    className="form-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label">Appointment / Package Type</label>
+                  <select
+                    value={bookingForm.servicePackage}
+                    onChange={(e) => setBookingForm((prev) => ({ ...prev, servicePackage: e.target.value }))}
+                    className="form-select"
+                  >
+                    <option value="Periodic Maintenance & 50-Pt Inspection">Periodic Maintenance & 50-Pt Inspection</option>
+                    <option value="Certified Vehicle Test Drive">Certified Vehicle Test Drive</option>
+                    <option value="Comprehensive Diagnostic Bay Pass">Comprehensive Diagnostic Bay Pass</option>
+                    <option value="Brake & Suspension Overhaul">Brake & Suspension Overhaul</option>
+                    <option value="AC & Climate Control Servicing">AC & Climate Control Servicing</option>
+                    <option value="Pre-Purchase 140-Point Inspection">Pre-Purchase 140-Point Inspection</option>
+                    <option value="Ceramic Coating & Detailing Bay">Ceramic Coating & Detailing Bay</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label className="form-label">Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={bookingForm.date}
+                      onChange={(e) => setBookingForm((prev) => ({ ...prev, date: e.target.value }))}
+                      className="form-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label">Preferred Time Slot *</label>
+                    <select
+                      value={bookingForm.timeSlot}
+                      onChange={(e) => setBookingForm((prev) => ({ ...prev, timeSlot: e.target.value }))}
+                      className="form-select"
+                    >
+                      <option value="09:30 AM">09:30 AM</option>
+                      <option value="10:30 AM">10:30 AM</option>
+                      <option value="11:30 AM">11:30 AM</option>
+                      <option value="01:30 PM">01:30 PM</option>
+                      <option value="02:30 PM">02:30 PM</option>
+                      <option value="03:30 PM">03:30 PM</option>
+                      <option value="04:30 PM">04:30 PM</option>
+                      <option value="05:30 PM">05:30 PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label">Special Notes / Instructions</label>
+                  <textarea
+                    rows={2}
+                    value={bookingForm.notes}
+                    onChange={(e) => setBookingForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Customer requests engine oil check, wheel balancing..."
+                    className="form-textarea"
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setBookModalOpen(false)}
+                    className="btn btn-glass"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={bookService.isPending}
+                    className="btn btn-primary"
+                  >
+                    {bookService.isPending ? "Generating Token..." : "Confirm & Issue Token"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
