@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import crypto from "node:crypto";
+import { timingSafeStringEqual } from "./security";
 
 export const ALLOWED_ADMINS = [
   {
@@ -36,7 +37,7 @@ export function getAdminUser(email: string) {
   return ALLOWED_ADMINS.find((a) => a.email.toLowerCase() === normalized) || null;
 }
 
-const AUTH_SECRET = process.env.SESSION_SECRET || "passioncar-admin-secret-session-key-2026";
+const AUTH_SECRET = process.env.SESSION_SECRET || "passioncar-admin-secret-session-key-2026-hardened";
 
 function signAdminPayload(payload: string): string {
   return crypto.createHmac("sha256", AUTH_SECRET).update(payload).digest("hex");
@@ -82,7 +83,7 @@ export function createAdminSessionWithDetails(user: { email: string; role: strin
 }
 
 export function verifySessionToken(token: string) {
-  if (!token) return null;
+  if (!token || typeof token !== "string") return null;
   const session = sessions.get(token);
   if (session && session.expiresAt >= Date.now()) {
     const isAllowed = ALLOWED_ADMINS.some((a) => a.email.toLowerCase() === session.email.toLowerCase());
@@ -98,7 +99,7 @@ export function verifySessionToken(token: string) {
         const expiresAt = Number(expStr);
         if (expiresAt && expiresAt > Date.now()) {
           const expectedSig = signAdminPayload(payload);
-          if (sig === expectedSig) {
+          if (timingSafeStringEqual(sig, expectedSig)) {
             const admin = getAdminUser(email);
             if (admin) {
               const sessionData = { email: admin.email, role: admin.role, name: admin.name, expiresAt };

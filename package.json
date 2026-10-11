@@ -20,22 +20,19 @@
     "@clerk/themes": "^2.4.57",
     "@tanstack/react-query": "^5.104.1",
     "cors": "^2.8.6",
-    "drizzle-kit": "^0.31.11",
     "drizzle-orm": "^0.45.3",
-    "esbuild": "^0.28.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.1",
     "framer-motion": "^14.0.0",
-    "http-proxy-middleware": "^4.2.0",
     "lucide-react": "^1.52.0",
     "nodemailer": "^10.0.16",
     "pg": "^8.23.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.3",
-    "@vitejs/plugin-react": "^6.1.2",
+    "wouter": "^3.13.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.4",
@@ -43,8 +40,11 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "wouter": "^3.13.0",
-    "zod": "^4.6.5"
-  },
-  "devDependencies": {}
+    "@vitejs/plugin-react": "^6.1.2",
+    "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3"
+  }
 }

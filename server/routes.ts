@@ -23,10 +23,56 @@ import {
 } from "./auth";
 import { sendOtpEmail } from "./mailer";
 import { dynamoStore as storage } from "./dynamodb";
+import {
+  generateSecureOtp,
+  generateSecureToken,
+  hashPassword,
+  sanitizePlainString,
+  sanitizeText,
+  timingSafeStringEqual,
+  verifyPassword,
+} from "./security";
 
 export const api = Router();
 
-api.post("/upload", async (req, res) => {
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many authentication requests. Please try again after 15 minutes." },
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 25,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many upload requests. Please try again later." },
+});
+
+const inquiryLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 15,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many inquiries submitted. Please wait a few minutes." },
+});
+
+const customerAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many customer sign-in attempts. Please try again later." },
+});
+
+const DEFAULT_ADMIN_HASHES: Record<string, string> = {
+  "passioncar877@gmail.com": hashPassword("passioncar877"),
+  "kongaraprasanth25niat@gmail.com": hashPassword("passiondev2026"),
+};
+
+api.post("/upload", uploadLimiter, async (req, res) => {
   try {
     const { image, name } = req.body || {};
     if (!image || typeof image !== "string") {
@@ -39,18 +85,26 @@ api.post("/upload", async (req, res) => {
     let ext = "jpg";
 
     if (matches && matches.length === 3) {
-      const mime = matches[1];
+      const mime = matches[1].toLowerCase();
       if (mime.includes("png")) ext = "png";
       else if (mime.includes("webp")) ext = "webp";
       else if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
-      else if (mime.includes("gif")) ext = "gif";
+      else {
+        res.status(400).json({ error: "Invalid image format. Allowed formats: PNG, WebP, JPG." });
+        return;
+      }
       buffer = Buffer.from(matches[2], "base64");
     } else {
       buffer = Buffer.from(image, "base64");
     }
 
-    const safeName = name ? String(name).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30) : "vehicle";
-    const filename = `${safeName}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    if (buffer.length > 10 * 1024 * 1024) {
+      res.status(400).json({ error: "File size exceeds 10MB limit." });
+      return;
+    }
+
+    const rawName = name ? sanitizePlainString(name).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30) : "vehicle";
+    const filename = `${rawName}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
     const uploadDir = path.resolve(process.cwd(), "public/uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -61,12 +115,11 @@ api.post("/upload", async (req, res) => {
     const publicUrl = `/uploads/${filename}`;
     res.json({ success: true, url: publicUrl, filename });
   } catch (error) {
-    console.error("Upload error:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Upload failed." });
+    res.status(500).json({ error: "Upload failed." });
   }
 });
 
-api.post("/upload-multiple", async (req, res) => {
+api.post("/upload-multiple", uploadLimiter, async (req, res) => {
   try {
     const { images } = req.body || {};
     if (!Array.isArray(images) || images.length === 0) {
@@ -83,25 +136,27 @@ api.post("/upload-multiple", async (req, res) => {
     for (const item of images.slice(0, 13)) {
       const dataStr = typeof item === "string" ? item : item?.image;
       const name = typeof item === "object" ? item?.name : "photo";
-      if (!dataStr) continue;
+      if (!dataStr || typeof dataStr !== "string") continue;
 
       const matches = dataStr.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
       let buffer: Buffer;
       let ext = "jpg";
 
       if (matches && matches.length === 3) {
-        const mime = matches[1];
+        const mime = matches[1].toLowerCase();
         if (mime.includes("png")) ext = "png";
         else if (mime.includes("webp")) ext = "webp";
         else if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
-        else if (mime.includes("gif")) ext = "gif";
+        else continue;
         buffer = Buffer.from(matches[2], "base64");
       } else {
         buffer = Buffer.from(dataStr, "base64");
       }
 
-      const safeName = name ? String(name).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30) : "car";
-      const filename = `${safeName}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
+      if (buffer.length > 10 * 1024 * 1024) continue;
+
+      const rawName = name ? sanitizePlainString(name).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 30) : "car";
+      const filename = `${rawName}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
       const filePath = path.join(uploadDir, filename);
       await fs.promises.writeFile(filePath, buffer);
       urls.push(`/uploads/${filename}`);
@@ -109,16 +164,8 @@ api.post("/upload-multiple", async (req, res) => {
 
     res.json({ success: true, urls });
   } catch (error) {
-    console.error("Upload multiple error:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Multi-upload failed." });
+    res.status(500).json({ error: "Multi-upload failed." });
   }
-});
-
-const inquiryLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  limit: 15,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
 });
 
 function asNumber(value: unknown) {
@@ -144,7 +191,7 @@ const twoFactorStore = new Map<string, {
   expiresAt: number;
 }>();
 
-api.post("/auth/two-step/init", async (req, res) => {
+api.post("/auth/two-step/init", authLimiter, async (req, res) => {
   try {
     const { method, email, password } = req.body || {};
     if (!email || typeof email !== "string") {
@@ -169,20 +216,24 @@ api.post("/auth/two-step/init", async (req, res) => {
         return;
       }
 
-      const validPasswords = [
-        "passioncar2026",
-        "passioncar877",
-        "admin877",
-        "passiondev2026",
-        currentSettings.adminPassword,
-        process.env.ADMIN_PASSWORD,
-      ].filter(Boolean);
+      let passwordValid = false;
+      const cleanPassword = password.trim();
 
-      const passwordMatch =
-        validPasswords.includes(password) ||
-        (process.env.NODE_ENV !== "production" && (!password || password === "admin"));
+      if (currentSettings?.adminPasswordHash) {
+        passwordValid = verifyPassword(cleanPassword, currentSettings.adminPasswordHash);
+      } else if (currentSettings?.adminPassword) {
+        passwordValid = verifyPassword(cleanPassword, currentSettings.adminPassword);
+      }
 
-      if (!passwordMatch) {
+      if (!passwordValid && process.env.ADMIN_PASSWORD) {
+        passwordValid = verifyPassword(cleanPassword, process.env.ADMIN_PASSWORD);
+      }
+
+      if (!passwordValid && DEFAULT_ADMIN_HASHES[admin.email]) {
+        passwordValid = verifyPassword(cleanPassword, DEFAULT_ADMIN_HASHES[admin.email]);
+      }
+
+      if (!passwordValid) {
         res.status(401).json({
           error: "Incorrect password. Please verify your administrator credentials.",
         });
@@ -190,10 +241,9 @@ api.post("/auth/two-step/init", async (req, res) => {
       }
     }
 
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-
-    const tfaToken = `tfa_${crypto.randomBytes(24).toString("hex")}`;
-    const magicToken = `magic_${crypto.randomBytes(16).toString("hex")}${Date.now()}`;
+    const otp = generateSecureOtp();
+    const tfaToken = generateSecureToken("tfa", 24);
+    const magicToken = generateSecureToken("magic", 20);
     const host = req.get("host") || "localhost:5000";
     const protocol = req.protocol || "http";
     const magicUrl = `${protocol}://${host}/admin?magic=${magicToken}`;
@@ -211,7 +261,7 @@ api.post("/auth/two-step/init", async (req, res) => {
 
     magicStore.set(magicToken, {
       email: admin.email,
-      expiresAt: Date.now() + 60 * 60 * 1000,
+      expiresAt: Date.now() + 30 * 60 * 1000,
     });
 
     try {
@@ -231,14 +281,14 @@ api.post("/auth/two-step/init", async (req, res) => {
       email: admin.email,
       role: admin.role,
       adminName: admin.name,
-            message: `Step 1 Passed! Security OTP and Magic URL sent to ${admin.email}.`,
+      message: `Step 1 Passed! Security OTP and Magic URL sent to ${admin.email}.`,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Authentication initiation failed." });
+    res.status(500).json({ error: "Authentication initiation failed." });
   }
 });
 
-api.post("/auth/reset-password", async (req, res) => {
+api.post("/auth/reset-password", authLimiter, async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body || {};
     if (!email || typeof email !== "string" || !newPassword || typeof newPassword !== "string") {
@@ -251,18 +301,22 @@ api.post("/auth/reset-password", async (req, res) => {
       return;
     }
     const inputOtp = (otp || "").trim();
-    if (inputOtp !== "858380" && inputOtp !== "123456") {
-      res.status(401).json({ error: "Invalid OTP code. Please enter the valid 6-digit security OTP." });
+    const stored = otpStore.get(admin.email.toLowerCase());
+    if (!stored || stored.expiresAt < Date.now() || !timingSafeStringEqual(inputOtp, stored.otp)) {
+      res.status(401).json({ error: "Invalid or expired OTP code. Please request a new security OTP." });
       return;
     }
-    await (storage as any).updateSettings({ adminPassword: newPassword.trim() });
+
+    otpStore.delete(admin.email.toLowerCase());
+    const hashed = hashPassword(newPassword.trim());
+    await (storage as any).updateSettings({ adminPassword: hashed, adminPasswordHash: hashed });
     res.json({ success: true, message: "Password updated successfully! You can now sign in with your new password." });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Password reset failed." });
+    res.status(500).json({ error: "Password reset failed." });
   }
 });
 
-api.post("/auth/two-step/verify", async (req, res) => {
+api.post("/auth/two-step/verify", authLimiter, async (req, res) => {
   try {
     const { twoFactorToken, otp, magicUrl, magicToken } = req.body || {};
     if (!twoFactorToken || typeof twoFactorToken !== "string") {
@@ -281,21 +335,21 @@ api.post("/auth/two-step/verify", async (req, res) => {
 
     if (otp && typeof otp === "string") {
       const cleanOtp = otp.trim();
-      if (cleanOtp === tfaSession.otp || cleanOtp === "858380") {
+      if (timingSafeStringEqual(cleanOtp, tfaSession.otp)) {
         verified = true;
       }
     }
 
     if (!verified && (magicUrl || magicToken)) {
       const inputStr = String(magicUrl || magicToken).trim();
-      if (inputStr.includes(tfaSession.magicToken) || inputStr === tfaSession.magicToken) {
+      if (timingSafeStringEqual(inputStr, tfaSession.magicToken) || inputStr.includes(tfaSession.magicToken)) {
         verified = true;
       }
     }
 
     if (!verified) {
       res.status(401).json({
-        error: "Invalid verification. Please enter the correct 6-digit OTP code or valid Magic URL.",
+        error: "Invalid verification code. Please enter the correct 6-digit OTP code sent to your email.",
       });
       return;
     }
@@ -321,11 +375,11 @@ api.post("/auth/two-step/verify", async (req, res) => {
       message: "Two-step verification successful! Access granted.",
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Two-step verification failed." });
+    res.status(500).json({ error: "Two-step verification failed." });
   }
 });
 
-api.post("/auth/login", async (req, res) => {
+api.post("/auth/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || typeof email !== "string") {
@@ -341,21 +395,27 @@ api.post("/auth/login", async (req, res) => {
       return;
     }
 
-    const validPasswords = [
-      "passioncar2026",
-      "passioncar877",
-      "admin877",
-      "passiondev2026",
-      process.env.ADMIN_PASSWORD,
-    ].filter(Boolean);
+    const currentSettings = await (storage as any).getSettings();
+    let passwordValid = false;
+    const cleanPassword = (password || "").trim();
 
-    const passwordMatch =
-      validPasswords.includes(password) ||
-      (process.env.NODE_ENV !== "production" && (!password || password === "admin"));
+    if (currentSettings?.adminPasswordHash) {
+      passwordValid = verifyPassword(cleanPassword, currentSettings.adminPasswordHash);
+    } else if (currentSettings?.adminPassword) {
+      passwordValid = verifyPassword(cleanPassword, currentSettings.adminPassword);
+    }
 
-    if (!passwordMatch) {
+    if (!passwordValid && process.env.ADMIN_PASSWORD) {
+      passwordValid = verifyPassword(cleanPassword, process.env.ADMIN_PASSWORD);
+    }
+
+    if (!passwordValid && DEFAULT_ADMIN_HASHES[admin.email]) {
+      passwordValid = verifyPassword(cleanPassword, DEFAULT_ADMIN_HASHES[admin.email]);
+    }
+
+    if (!passwordValid) {
       res.status(401).json({
-        error: "Incorrect password. Default credentials: passioncar2026 or passiondev2026.",
+        error: "Incorrect password. Please verify your credentials.",
       });
       return;
     }
@@ -367,17 +427,17 @@ api.post("/auth/login", async (req, res) => {
       user: session.user,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Login failed." });
+    res.status(500).json({ error: "Login failed." });
   }
 });
 
-api.post("/auth/google", async (req, res) => {
+api.post("/auth/google", authLimiter, async (req, res) => {
   try {
     const { email, credential, name, photo } = req.body || {};
 
     let targetEmail = (email || "").trim().toLowerCase();
-    let targetName = (name || "").trim();
-    let targetPhoto = (photo || "").trim();
+    let targetName = sanitizePlainString(name || "");
+    let targetPhoto = sanitizePlainString(photo || "");
 
     if (credential && typeof credential === "string") {
       try {
@@ -388,8 +448,8 @@ api.post("/auth/google", async (req, res) => {
           const decoded = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
           if (decoded.email) {
             targetEmail = String(decoded.email).trim().toLowerCase();
-            if (decoded.name) targetName = decoded.name;
-            if (decoded.picture) targetPhoto = decoded.picture;
+            if (decoded.name) targetName = sanitizePlainString(decoded.name);
+            if (decoded.picture) targetPhoto = sanitizePlainString(decoded.picture);
           }
         }
       } catch (_) {}
@@ -419,18 +479,18 @@ api.post("/auth/google", async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Google sign-in failed." });
+    res.status(500).json({ error: "Google sign-in failed." });
   }
 });
 
-api.post("/customer/pin-login", async (req, res) => {
+api.post("/customer/pin-login", customerAuthLimiter, async (req, res) => {
   try {
     const { phone, name } = req.body || {};
     if (!phone || typeof phone !== "string") {
       res.status(400).json({ error: "Mobile number is required." });
       return;
     }
-    const cleanPhone = phone.trim();
+    const cleanPhone = sanitizePlainString(phone);
     const cleanDigits = cleanPhone.replace(/\D/g, "");
     if (cleanDigits.length < 10) {
       res.status(400).json({ error: "Please enter a valid 10-digit mobile number." });
@@ -439,7 +499,7 @@ api.post("/customer/pin-login", async (req, res) => {
 
     const customer = {
       id: `cust_${cleanDigits}`,
-      name: (name || "").trim() || "Customer",
+      name: sanitizePlainString(name || "Customer"),
       phone: cleanPhone,
       email: "",
       photo: "",
@@ -469,35 +529,37 @@ api.post("/customer/pin-login", async (req, res) => {
       customer,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Customer login failed." });
+    res.status(500).json({ error: "Customer login failed." });
   }
 });
 
-api.post("/customer/google-login", async (req, res) => {
+api.post("/customer/google-login", customerAuthLimiter, async (req, res) => {
   try {
     const { email, name, photo } = req.body || {};
-    console.log("👉 Customer Google OAuth sign-in request:", { email, name });
     if (!email || typeof email !== "string") {
       res.status(400).json({ error: "Google account email is required." });
       return;
     }
 
+    const cleanEmail = sanitizePlainString(email).toLowerCase();
+    const cleanName = sanitizePlainString(name || cleanEmail.split("@")[0]);
+
     const customer = {
-      id: `cust_${email.split("@")[0]}`,
-      name: name || email.split("@")[0],
+      id: `cust_${cleanEmail.split("@")[0]}`,
+      name: cleanName,
       phone: "",
-      email,
-      photo: photo || "",
+      email: cleanEmail,
+      photo: sanitizePlainString(photo || ""),
     };
 
     try {
       const customers = await (storage as any).getCustomers();
-      const existing = customers.find((c: any) => c.email && c.email.toLowerCase() === email.toLowerCase());
+      const existing = customers.find((c: any) => c.email && c.email.toLowerCase() === cleanEmail);
       if (!existing) {
         await (storage as any).createCustomer({
           name: customer.name,
           phone: "+91 88858 58380",
-          email,
+          email: cleanEmail,
           transactionType: "current_buyer",
           carModel: "Google Account User",
           regNumber: "",
@@ -514,7 +576,7 @@ api.post("/customer/google-login", async (req, res) => {
       customer,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Google customer login failed." });
+    res.status(500).json({ error: "Google customer login failed." });
   }
 });
 
@@ -527,27 +589,30 @@ api.put("/customer/profile", async (req, res) => {
     }
 
     const updatedCustomer = {
-      id,
-      name: (name || "").trim(),
-      phone: (phone || "").trim(),
-      email: (email || "").trim(),
-      photo: (photo || "").trim(),
+      id: sanitizePlainString(id),
+      name: sanitizePlainString(name || ""),
+      phone: sanitizePlainString(phone || ""),
+      email: sanitizePlainString(email || "").toLowerCase(),
+      photo: sanitizePlainString(photo || ""),
     };
 
     try {
       const customers = await (storage as any).getCustomers();
       const existing = customers.find((c: any) =>
-        (c.email && c.email.toLowerCase() === updatedCustomer.email.toLowerCase()) ||
+        (c.email && c.email.toLowerCase() === updatedCustomer.email) ||
         (c.phone && c.phone.replace(/\D/g, "") === updatedCustomer.phone.replace(/\D/g, "")) ||
         String(c.id) === String(id).replace("cust_", "")
       );
       if (existing) {
-        await (storage as any).updateCustomer(existing.id, {
+        const updatePayload: any = {
           name: updatedCustomer.name,
           phone: updatedCustomer.phone,
           email: updatedCustomer.email,
-          notes: password ? `${existing.notes || ""}\n[Password Changed: ${new Date().toISOString()}]` : existing.notes,
-        });
+        };
+        if (password && typeof password === "string" && password.trim().length >= 6) {
+          updatePayload.notes = `${existing.notes || ""}\n[Password Hash: ${hashPassword(password.trim())}]`;
+        }
+        await (storage as any).updateCustomer(existing.id, updatePayload);
       }
     } catch (_) {}
 
@@ -556,11 +621,11 @@ api.put("/customer/profile", async (req, res) => {
       customer: updatedCustomer,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Profile update failed." });
+    res.status(500).json({ error: "Profile update failed." });
   }
 });
 
-api.post("/customer/reset-password", async (req, res) => {
+api.post("/customer/reset-password", customerAuthLimiter, async (req, res) => {
   try {
     const { identifier, newPassword, userId } = req.body || {};
     if (!identifier && !userId) {
@@ -572,8 +637,9 @@ api.post("/customer/reset-password", async (req, res) => {
       return;
     }
 
-    const cleanIdentifier = String(identifier || "").trim().toLowerCase();
+    const cleanIdentifier = sanitizePlainString(identifier || "").toLowerCase();
     const cleanPhone = cleanIdentifier.replace(/\D/g, "");
+    const hashed = hashPassword(String(newPassword).trim());
 
     try {
       const customers = await (storage as any).getCustomers();
@@ -584,7 +650,7 @@ api.post("/customer/reset-password", async (req, res) => {
       );
       if (existing) {
         await (storage as any).updateCustomer(existing.id, {
-          notes: `${existing.notes || ""}\n[Password Reset: ${new Date().toISOString()}]`,
+          notes: `${existing.notes || ""}\n[Password Hash: ${hashed}]`,
         });
       }
     } catch (_) {}
@@ -594,22 +660,22 @@ api.post("/customer/reset-password", async (req, res) => {
       message: "Password reset successfully.",
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Password reset failed." });
+    res.status(500).json({ error: "Password reset failed." });
   }
 });
 
-api.post("/customer/login-password", async (req, res) => {
+api.post("/customer/login-password", customerAuthLimiter, async (req, res) => {
   try {
     const { identifier, password } = req.body || {};
     if (!identifier || !password) {
       res.status(400).json({ error: "Please enter your email/mobile and password." });
       return;
     }
-    const clean = String(identifier).trim();
+    const clean = sanitizePlainString(identifier);
     const isEmail = clean.includes("@");
     const name = isEmail ? clean.split("@")[0] : `Customer ${clean.slice(-4)}`;
     const phone = isEmail ? "+91 88858 58380" : clean;
-    const email = isEmail ? clean : `${clean}@passioncar.in`;
+    const email = isEmail ? clean.toLowerCase() : `${clean}@passioncar.in`;
 
     const customer = {
       id: `cust_${Date.now()}`,
@@ -626,6 +692,16 @@ api.post("/customer/login-password", async (req, res) => {
         (c.phone && c.phone.replace(/\D/g, "") === clean.replace(/\D/g, ""))
       );
       if (existing) {
+        if (existing.notes && existing.notes.includes("[Password Hash: ")) {
+          const match = existing.notes.match(/\[Password Hash:\s*([^\s\]]+)\]/);
+          if (match && match[1]) {
+            const valid = verifyPassword(String(password).trim(), match[1]);
+            if (!valid) {
+              res.status(401).json({ error: "Incorrect password. Please verify your credentials." });
+              return;
+            }
+          }
+        }
         customer.id = `cust_${existing.id}`;
         customer.name = existing.name || customer.name;
         customer.phone = existing.phone || customer.phone;
@@ -638,7 +714,7 @@ api.post("/customer/login-password", async (req, res) => {
       customer,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Login failed." });
+    res.status(500).json({ error: "Login failed." });
   }
 });
 
@@ -648,6 +724,15 @@ api.get("/customer/my-activity", async (req, res) => {
     const phone = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
     const email = typeof req.query.email === "string" ? req.query.email.trim().toLowerCase() : "";
 
+    if (!phone && !email) {
+      res.json({
+        inquiries: [],
+        serviceBookings: [],
+        customers: [],
+      });
+      return;
+    }
+
     const allInquiries = await storage.getInquiries();
     const allBookings = await (storage as any).getServiceBookings();
     const allCustomers = await (storage as any).getCustomers();
@@ -656,33 +741,6 @@ api.get("/customer/my-activity", async (req, res) => {
     const matchingEmails = new Set<string>();
     if (phone) matchingPhones.add(phone);
     if (email) matchingEmails.add(email);
-
-    allInquiries.forEach((inq) => {
-      const p = (inq.phone || "").replace(/\D/g, "").slice(-10);
-      const e = (inq.email || "").toLowerCase();
-      if ((phone && p && p === phone) || (email && e && e === email)) {
-        if (p) matchingPhones.add(p);
-        if (e) matchingEmails.add(e);
-      }
-    });
-
-    allBookings.forEach((b: any) => {
-      const p = (b.phone || "").replace(/\D/g, "").slice(-10);
-      const e = (b.email || "").toLowerCase();
-      if ((phone && p && p === phone) || (email && e && e === email)) {
-        if (p) matchingPhones.add(p);
-        if (e) matchingEmails.add(e);
-      }
-    });
-
-    (allCustomers || []).forEach((c: any) => {
-      const p = (c.phone || "").replace(/\D/g, "").slice(-10);
-      const e = (c.email || "").toLowerCase();
-      if ((phone && p && p === phone) || (email && e && e === email)) {
-        if (p) matchingPhones.add(p);
-        if (e) matchingEmails.add(e);
-      }
-    });
 
     const myInquiries = allInquiries.filter((inq) => {
       const p = (inq.phone || "").replace(/\D/g, "").slice(-10);
@@ -708,71 +766,99 @@ api.get("/customer/my-activity", async (req, res) => {
       customers: myCustomers,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to load customer activity." });
+    res.status(500).json({ error: "Failed to load customer activity." });
   }
 });
 
-api.post("/auth/otp/send", async (req, res) => {
+api.post("/auth/otp/send", authLimiter, async (req, res) => {
   try {
-    const { phone } = req.body || {};
-    if (!phone || typeof phone !== "string") {
-      res.status(400).json({ error: "Phone number is required." });
+    const { phone, email } = req.body || {};
+    let targetAdmin = null;
+
+    if (email && typeof email === "string") {
+      targetAdmin = getAdminUser(email);
+    }
+
+    const digits = (phone || "").replace(/\D/g, "");
+    if (!targetAdmin && (digits.endsWith("8885858380") || digits === "8885858380")) {
+      targetAdmin = getAdminUser("passioncar877@gmail.com");
+    }
+
+    if (!targetAdmin) {
+      res.status(403).json({ error: "Access Denied: Only authorized administrators are permitted." });
       return;
     }
 
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 10) {
-      res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
-      return;
+    const otp = generateSecureOtp();
+    const expiry = Date.now() + 10 * 60_000;
+    otpStore.set(targetAdmin.email.toLowerCase(), { otp, expiresAt: expiry });
+    if (digits) {
+      otpStore.set(digits, { otp, expiresAt: expiry });
     }
 
-    const otp = digits.slice(-6) || "858380";
-    otpStore.set(digits, { otp, expiresAt: Date.now() + 10 * 60_000 });
+    try {
+      await sendOtpEmail({
+        to: targetAdmin.email,
+        name: targetAdmin.name,
+        otp,
+        role: targetAdmin.role,
+      });
+    } catch (_) {}
 
     res.json({
       success: true,
-      message: `OTP sent successfully to ${phone}.`,
+      message: `Security OTP sent to ${targetAdmin.email}.`,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to send OTP." });
+    res.status(500).json({ error: "Failed to send OTP." });
   }
 });
 
-api.post("/auth/otp/verify", async (req, res) => {
+api.post("/auth/otp/verify", authLimiter, async (req, res) => {
   try {
-    const { phone, otp } = req.body || {};
-    if (!phone || !otp) {
-      res.status(400).json({ error: "Phone number and OTP are required." });
+    const { phone, email, otp } = req.body || {};
+    if (!otp) {
+      res.status(400).json({ error: "OTP code is required." });
       return;
     }
 
-    const digits = phone.replace(/\D/g, "");
-    if (!digits.endsWith("8885858380") && digits !== "8885858380") {
-      res.status(403).json({ error: "Access Denied: Only authorized administrators (passioncar877@gmail.com, kongaraprasanth25niat@gmail.com) are permitted." });
+    let targetAdmin = null;
+    if (email && typeof email === "string") {
+      targetAdmin = getAdminUser(email);
+    }
+
+    const digits = (phone || "").replace(/\D/g, "");
+    if (!targetAdmin && (digits.endsWith("8885858380") || digits === "8885858380")) {
+      targetAdmin = getAdminUser("passioncar877@gmail.com");
+    }
+
+    if (!targetAdmin) {
+      res.status(403).json({ error: "Access Denied: Only authorized administrators are permitted." });
       return;
     }
 
-    const stored = otpStore.get(digits);
+    const stored = otpStore.get(targetAdmin.email.toLowerCase()) || (digits ? otpStore.get(digits) : null);
 
-    if (!stored || stored.otp !== String(otp).trim() || stored.expiresAt < Date.now()) {
+    if (!stored || stored.expiresAt < Date.now() || !timingSafeStringEqual(String(otp).trim(), stored.otp)) {
       res.status(401).json({ error: "Invalid or expired OTP." });
       return;
     }
 
-    otpStore.delete(digits);
+    otpStore.delete(targetAdmin.email.toLowerCase());
+    if (digits) otpStore.delete(digits);
 
-    const session = createAdminSession("passioncar877@gmail.com");
+    const session = createAdminSession(targetAdmin.email);
     res.json({
       success: true,
       token: session.token,
       user: session.user,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "OTP verification failed." });
+    res.status(500).json({ error: "OTP verification failed." });
   }
 });
 
-api.post("/auth/magic-link/generate", async (req, res) => {
+api.post("/auth/magic-link/generate", authLimiter, async (req, res) => {
   try {
     const { email } = req.body || {};
     const adminEmail = email && typeof email === "string" ? email.trim().toLowerCase() : "passioncar877@gmail.com";
@@ -782,25 +868,33 @@ api.post("/auth/magic-link/generate", async (req, res) => {
       return;
     }
 
-    const token = `magic_${Math.random().toString(36).slice(2)}${Date.now()}`;
-    magicStore.set(token, { email: admin.email, expiresAt: Date.now() + 60 * 60_000 });
+    const token = generateSecureToken("magic", 24);
+    magicStore.set(token, { email: admin.email, expiresAt: Date.now() + 15 * 60_000 });
 
     const host = req.get("host") || "localhost:5000";
     const protocol = req.protocol || "http";
     const magicUrl = `${protocol}://${host}/admin?magic=${token}`;
 
+    try {
+      await sendOtpEmail({
+        to: admin.email,
+        name: admin.name,
+        otp: "MAGIC-LINK",
+        magicUrl,
+        role: admin.role,
+      });
+    } catch (_) {}
+
     res.json({
       success: true,
-      magicUrl,
-      token,
-      message: "Direct Magic Link generated successfully.",
+      message: `A secure sign-in link has been sent to ${admin.email}.`,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate magic link." });
+    res.status(500).json({ error: "Failed to generate magic link." });
   }
 });
 
-api.post("/auth/magic-link/verify", async (req, res) => {
+api.post("/auth/magic-link/verify", authLimiter, async (req, res) => {
   try {
     const { token } = req.body || {};
     if (!token || typeof token !== "string") {
@@ -822,7 +916,7 @@ api.post("/auth/magic-link/verify", async (req, res) => {
       user: session.user,
     });
   } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : "Magic link verification failed." });
+    res.status(500).json({ error: "Magic link verification failed." });
   }
 });
 
@@ -867,18 +961,18 @@ api.post("/auth/logout", async (req, res) => {
 api.get("/vehicles", async (req, res, next) => {
   try {
     const filters = {
-      search: typeof req.query.search === "string" ? req.query.search.trim() : undefined,
-      brand: typeof req.query.brand === "string" ? req.query.brand.trim() : undefined,
-      bodyType: typeof req.query.bodyType === "string" ? req.query.bodyType.trim() : undefined,
-      fuelType: typeof req.query.fuelType === "string" ? req.query.fuelType.trim() : undefined,
-      transmission: typeof req.query.transmission === "string" ? req.query.transmission.trim() : undefined,
-      color: typeof req.query.color === "string" ? req.query.color.trim() : undefined,
+      search: typeof req.query.search === "string" ? sanitizePlainString(req.query.search) : undefined,
+      brand: typeof req.query.brand === "string" ? sanitizePlainString(req.query.brand) : undefined,
+      bodyType: typeof req.query.bodyType === "string" ? sanitizePlainString(req.query.bodyType) : undefined,
+      fuelType: typeof req.query.fuelType === "string" ? sanitizePlainString(req.query.fuelType) : undefined,
+      transmission: typeof req.query.transmission === "string" ? sanitizePlainString(req.query.transmission) : undefined,
+      color: typeof req.query.color === "string" ? sanitizePlainString(req.query.color) : undefined,
       minPrice: asNumber(req.query.minPrice),
       maxPrice: asNumber(req.query.maxPrice),
       yearFrom: asNumber(req.query.yearFrom),
       yearTo: asNumber(req.query.yearTo),
       maxKm: asNumber(req.query.maxKm),
-      sort: typeof req.query.sort === "string" ? req.query.sort.trim() : undefined,
+      sort: typeof req.query.sort === "string" ? sanitizePlainString(req.query.sort) : undefined,
       includeSold: req.query.includeSold === "true",
     };
 
@@ -909,7 +1003,7 @@ api.get("/vehicles/:id", async (req, res, next) => {
 
 api.get("/gallery", async (req, res, next) => {
   try {
-    const category = typeof req.query.category === "string" ? req.query.category.trim() : undefined;
+    const category = typeof req.query.category === "string" ? sanitizePlainString(req.query.category) : undefined;
     const items = await storage.getGallery(category);
     res.json(items);
   } catch (error) {
@@ -919,7 +1013,14 @@ api.get("/gallery", async (req, res, next) => {
 
 api.post("/inquiries", inquiryLimiter, async (req, res, next) => {
   try {
-    const parsed = inquiryInputSchema.safeParse(req.body);
+    const sanitizedBody = {
+      ...req.body,
+      name: sanitizePlainString(req.body?.name),
+      phone: sanitizePlainString(req.body?.phone),
+      email: req.body?.email ? sanitizePlainString(req.body?.email) : "",
+      message: sanitizePlainString(req.body?.message || ""),
+    };
+    const parsed = inquiryInputSchema.safeParse(sanitizedBody);
     if (!parsed.success) {
       res.status(400).json({ error: "Please enter your name, valid phone number, and details." });
       return;
@@ -991,7 +1092,7 @@ api.get("/reviews", async (_req, res, next) => {
   }
 });
 
-api.post("/reviews", async (req, res, next) => {
+api.post("/reviews", inquiryLimiter, async (req, res, next) => {
   try {
     const { authorName, rating, text, carModel } = req.body || {};
     if (!authorName || !text) {
@@ -999,12 +1100,12 @@ api.post("/reviews", async (req, res, next) => {
       return;
     }
     const created = await (storage as any).addReview({
-      authorName: String(authorName).trim(),
-      rating: Number(rating) || 5,
-      text: String(text).trim(),
+      authorName: sanitizePlainString(authorName),
+      rating: Math.min(5, Math.max(1, Number(rating) || 5)),
+      text: sanitizePlainString(text),
       relativeTime: "Just now",
       verified: true,
-      carModel: carModel ? String(carModel).trim() : undefined,
+      carModel: carModel ? sanitizePlainString(carModel) : undefined,
     });
     res.status(201).json(created);
   } catch (error) {
@@ -1015,9 +1116,9 @@ api.post("/reviews", async (req, res, next) => {
 api.get("/vehicle-suggestions", async (req, res, next) => {
   try {
     const parsed = vehicleSuggestionSchema.safeParse({
-      make: req.query.make,
-      model: req.query.model,
-      variant: req.query.variant,
+      make: typeof req.query.make === "string" ? sanitizePlainString(req.query.make) : undefined,
+      model: typeof req.query.model === "string" ? sanitizePlainString(req.query.model) : undefined,
+      variant: typeof req.query.variant === "string" ? sanitizePlainString(req.query.variant) : undefined,
       year: asNumber(req.query.year),
       fuelType: req.query.fuelType,
     });
@@ -1037,7 +1138,6 @@ api.get("/vehicle-suggestions", async (req, res, next) => {
     next(error);
   }
 });
-
 
 api.get("/admin/summary", requireAdmin, async (_req, res, next) => {
   try {
@@ -1079,7 +1179,18 @@ api.post("/admin/vehicles", requireAdmin, async (req, res, next) => {
       });
       return;
     }
-    const created = await storage.createVehicle(parsed.data);
+    const sanitizedVehicle = {
+      ...parsed.data,
+      make: sanitizePlainString(parsed.data.make),
+      model: sanitizePlainString(parsed.data.model),
+      variant: sanitizePlainString(parsed.data.variant),
+      color: sanitizePlainString(parsed.data.color),
+      city: sanitizePlainString(parsed.data.city),
+      engineType: sanitizePlainString(parsed.data.engineType),
+      description: sanitizePlainString(parsed.data.description),
+      features: parsed.data.features.map((f) => sanitizePlainString(f)),
+    };
+    const created = await storage.createVehicle(sanitizedVehicle);
     res.status(201).json(created);
   } catch (error) {
     next(error);
@@ -1098,7 +1209,17 @@ api.put("/admin/vehicles/:id", requireAdmin, async (req, res, next) => {
       res.status(400).json({ error: "Check updated car fields." });
       return;
     }
-    const updated = await storage.updateVehicle(id, parsed.data);
+    const sanitizedUpdate: any = { ...parsed.data };
+    if (parsed.data.make) sanitizedUpdate.make = sanitizePlainString(parsed.data.make);
+    if (parsed.data.model) sanitizedUpdate.model = sanitizePlainString(parsed.data.model);
+    if (parsed.data.variant !== undefined) sanitizedUpdate.variant = sanitizePlainString(parsed.data.variant);
+    if (parsed.data.color !== undefined) sanitizedUpdate.color = sanitizePlainString(parsed.data.color);
+    if (parsed.data.city) sanitizedUpdate.city = sanitizePlainString(parsed.data.city);
+    if (parsed.data.engineType !== undefined) sanitizedUpdate.engineType = sanitizePlainString(parsed.data.engineType);
+    if (parsed.data.description !== undefined) sanitizedUpdate.description = sanitizePlainString(parsed.data.description);
+    if (parsed.data.features) sanitizedUpdate.features = parsed.data.features.map((f) => sanitizePlainString(f));
+
+    const updated = await storage.updateVehicle(id, sanitizedUpdate);
     if (!updated) {
       res.status(404).json({ error: "Vehicle not found." });
       return;
@@ -1143,7 +1264,13 @@ api.post("/admin/gallery", requireAdmin, async (req, res, next) => {
       res.status(400).json({ error: "Provide a title and valid image URL for gallery item." });
       return;
     }
-    const item = await storage.createGalleryItem(parsed.data);
+    const sanitized = {
+      ...parsed.data,
+      title: sanitizePlainString(parsed.data.title),
+      category: sanitizePlainString(parsed.data.category),
+      caption: sanitizePlainString(parsed.data.caption),
+    };
+    const item = await storage.createGalleryItem(sanitized);
     res.status(201).json(item);
   } catch (error) {
     next(error);
@@ -1162,7 +1289,12 @@ api.put("/admin/gallery/:id", requireAdmin, async (req, res, next) => {
       res.status(400).json({ error: "Invalid gallery update payload." });
       return;
     }
-    const updated = await storage.updateGalleryItem(id, parsed.data);
+    const sanitized: any = { ...parsed.data };
+    if (parsed.data.title) sanitized.title = sanitizePlainString(parsed.data.title);
+    if (parsed.data.category) sanitized.category = sanitizePlainString(parsed.data.category);
+    if (parsed.data.caption !== undefined) sanitized.caption = sanitizePlainString(parsed.data.caption);
+
+    const updated = await storage.updateGalleryItem(id, sanitized);
     if (!updated) {
       res.status(404).json({ error: "Gallery item not found." });
       return;
@@ -1198,7 +1330,13 @@ api.put("/admin/settings", requireAdmin, async (req, res, next) => {
       res.status(400).json({ error: "Check settings payload." });
       return;
     }
-    const updatedSettings = await (storage as any).updateSettings(parsed.data);
+    const sanitized: any = { ...parsed.data };
+    if (parsed.data.address) sanitized.address = sanitizePlainString(parsed.data.address);
+    if (parsed.data.adminName) sanitized.adminName = sanitizePlainString(parsed.data.adminName);
+    if (parsed.data.showroomHoursMonSat) sanitized.showroomHoursMonSat = sanitizePlainString(parsed.data.showroomHoursMonSat);
+    if (parsed.data.showroomHoursSun) sanitized.showroomHoursSun = sanitizePlainString(parsed.data.showroomHoursSun);
+
+    const updatedSettings = await (storage as any).updateSettings(sanitized);
     res.json({ success: true, ...updatedSettings });
   } catch (error) {
     next(error);
@@ -1265,11 +1403,11 @@ api.post("/admin/inquiries/:id/reply", requireAdmin, async (req, res, next) => {
     }
 
     const updated = await storage.replyToInquiry(id, {
-      reply: reply.trim(),
+      reply: sanitizePlainString(reply),
       status: status || "contacted",
-      confirmedSlotTime: confirmedSlotTime ? String(confirmedSlotTime).trim() : undefined,
+      confirmedSlotTime: confirmedSlotTime ? sanitizePlainString(confirmedSlotTime) : undefined,
       slotConfirmed: Boolean(slotConfirmed),
-      repliedBy: repliedBy || res.locals.adminUser?.name || "Mohammed Akbar (Owner)",
+      repliedBy: sanitizePlainString(repliedBy || res.locals.adminUser?.name || "Mohammed Akbar (Owner)"),
     });
 
     if (!updated) {
@@ -1300,10 +1438,21 @@ api.post("/admin/inquiries/:id/mark-read", requireAdmin, async (req, res, next) 
   }
 });
 
-
-api.post("/service-booking", async (req, res, next) => {
+api.post("/service-booking", inquiryLimiter, async (req, res, next) => {
   try {
-    const parsed = serviceBookingInputSchema.safeParse(req.body);
+    const sanitizedBody = {
+      ...req.body,
+      customerName: sanitizePlainString(req.body?.customerName),
+      phone: sanitizePlainString(req.body?.phone),
+      email: req.body?.email ? sanitizePlainString(req.body?.email) : "",
+      carDetails: sanitizePlainString(req.body?.carDetails),
+      servicePackage: sanitizePlainString(req.body?.servicePackage || "Periodic Maintenance Service"),
+      date: sanitizePlainString(req.body?.date),
+      timeSlot: sanitizePlainString(req.body?.timeSlot),
+      notes: req.body?.notes ? sanitizePlainString(req.body?.notes) : undefined,
+    };
+
+    const parsed = serviceBookingInputSchema.safeParse(sanitizedBody);
     if (!parsed.success) {
       res.status(400).json({
         error: "Please provide your name, phone, car details, date, and preferred time slot.",
@@ -1312,7 +1461,7 @@ api.post("/service-booking", async (req, res, next) => {
       return;
     }
 
-    const randToken = `PCS-SRV-${Math.floor(1000 + Math.random() * 9000)}`;
+    const randToken = `PCS-SRV-${crypto.randomInt(1000, 10000)}`;
     const booking = await (storage as any).createServiceBooking({
       ...parsed.data,
       token: randToken,
@@ -1408,8 +1557,8 @@ api.delete("/admin/service-tokens/:id", requireAdmin, async (req, res, next) => 
 
 api.get("/admin/customers", requireAdmin, async (req, res, next) => {
   try {
-    const type = typeof req.query.type === "string" ? req.query.type : undefined;
-    const search = typeof req.query.search === "string" ? req.query.search : undefined;
+    const type = typeof req.query.type === "string" ? sanitizePlainString(req.query.type) : undefined;
+    const search = typeof req.query.search === "string" ? sanitizePlainString(req.query.search) : undefined;
     const customers = await (storage as any).getCustomers({ type, search });
     res.json(customers);
   } catch (error) {
@@ -1427,7 +1576,16 @@ api.post("/admin/customers", requireAdmin, async (req, res, next) => {
       });
       return;
     }
-    const created = await (storage as any).createCustomer(parsed.data);
+    const sanitized = {
+      ...parsed.data,
+      name: sanitizePlainString(parsed.data.name),
+      phone: sanitizePlainString(parsed.data.phone),
+      email: parsed.data.email ? sanitizePlainString(parsed.data.email) : undefined,
+      carModel: sanitizePlainString(parsed.data.carModel),
+      regNumber: parsed.data.regNumber ? sanitizePlainString(parsed.data.regNumber) : undefined,
+      notes: parsed.data.notes ? sanitizePlainString(parsed.data.notes) : undefined,
+    };
+    const created = await (storage as any).createCustomer(sanitized);
     res.status(201).json(created);
   } catch (error) {
     next(error);
@@ -1446,7 +1604,15 @@ api.put("/admin/customers/:id", requireAdmin, async (req, res, next) => {
       res.status(400).json({ error: "Invalid customer payload.", issues: parsed.error.issues });
       return;
     }
-    const updated = await (storage as any).updateCustomer(id, parsed.data);
+    const sanitized: any = { ...parsed.data };
+    if (parsed.data.name) sanitized.name = sanitizePlainString(parsed.data.name);
+    if (parsed.data.phone) sanitized.phone = sanitizePlainString(parsed.data.phone);
+    if (parsed.data.email !== undefined) sanitized.email = parsed.data.email ? sanitizePlainString(parsed.data.email) : "";
+    if (parsed.data.carModel) sanitized.carModel = sanitizePlainString(parsed.data.carModel);
+    if (parsed.data.regNumber !== undefined) sanitized.regNumber = sanitizePlainString(parsed.data.regNumber);
+    if (parsed.data.notes !== undefined) sanitized.notes = sanitizePlainString(parsed.data.notes);
+
+    const updated = await (storage as any).updateCustomer(id, sanitized);
     if (!updated) {
       res.status(404).json({ error: "Customer not found." });
       return;

@@ -376,7 +376,7 @@ export function useVerifyOtp() {
 export function useGenerateMagicLink() {
   return useMutation({
     mutationFn: async (payload: { email?: string }) => {
-      return request<{ success: boolean; magicUrl: string; token: string; message: string }>(
+      return request<{ success: boolean; message: string }>(
         "/api/auth/magic-link/generate",
         {
           method: "POST",

@@ -1,21 +1,21 @@
-import type { IncomingHttpHeaders } from 'http';
-import type { RequestHandler } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import type { IncomingHttpHeaders } from "node:http";
+import https from "node:https";
+import type { RequestHandler } from "express";
 
-const CLERK_FAPI = 'https://frontend-api.clerk.dev';
-export const CLERK_PROXY_PATH = '/api/__clerk';
+const CLERK_FAPI_HOST = "frontend-api.clerk.dev";
+export const CLERK_PROXY_PATH = "/api/__clerk";
 
 export function getClerkProxyHost(req: {
   headers: IncomingHttpHeaders;
 }): string | undefined {
-  const forwarded = req.headers['x-forwarded-host'];
+  const forwarded = req.headers["x-forwarded-host"];
   const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  const firstHop = raw?.split(',')[0]?.trim();
+  const firstHop = raw?.split(",")[0]?.trim();
   return firstHop || req.headers.host?.trim() || undefined;
 }
 
 export function clerkProxyMiddleware(): RequestHandler {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     return (_req, _res, next) => next();
   }
 
@@ -24,68 +24,42 @@ export function clerkProxyMiddleware(): RequestHandler {
     return (_req, _res, next) => next();
   }
 
-  return createProxyMiddleware({
-    target: CLERK_FAPI,
-    changeOrigin: true,
-    selfHandleResponse: true,
-    pathRewrite: (path: string) =>
-      path.replace(new RegExp(`^${CLERK_PROXY_PATH}`), ''),
-    on: {
-      proxyReq: (proxyReq, req) => {
-        const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const host = getClerkProxyHost(req) || '';
-        const proxyUrl = `${protocol}://${host}${CLERK_PROXY_PATH}`;
+  return (req, res) => {
+    const targetPath = req.url.replace(new RegExp(`^${CLERK_PROXY_PATH}`), "") || "/";
+    const protocol = req.headers["x-forwarded-proto"] || "https";
+    const host = getClerkProxyHost(req) || "";
+    const proxyUrl = `${protocol}://${host}${CLERK_PROXY_PATH}`;
 
-        proxyReq.setHeader('Clerk-Proxy-Url', proxyUrl);
-        proxyReq.setHeader('Clerk-Secret-Key', secretKey);
+    const headers: Record<string, string | string[] | undefined> = {
+      ...req.headers,
+      host: CLERK_FAPI_HOST,
+      "clerk-proxy-url": proxyUrl,
+      "clerk-secret-key": secretKey,
+    };
+    delete headers.connection;
 
-        const xff = req.headers['x-forwarded-for'];
-        const clientIp =
-          (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim() ||
-          req.socket?.remoteAddress ||
-          '';
-        if (clientIp) {
-          proxyReq.setHeader('X-Forwarded-For', clientIp);
-        }
+    const proxyReq = https.request(
+      {
+        host: CLERK_FAPI_HOST,
+        port: 443,
+        path: targetPath,
+        method: req.method,
+        headers,
       },
-      proxyRes: (proxyRes, req, res) => {
-        const headers = { ...proxyRes.headers };
-        delete headers['transfer-encoding'];
-        delete headers['connection'];
-        delete headers['keep-alive'];
-
-        const status = proxyRes.statusCode ?? 502;
-        if (status < 200 || status === 204) {
-          delete headers['content-length'];
-        }
-
-        const bodyless =
-          req.method === 'HEAD' ||
-          status < 200 ||
-          status === 204 ||
-          status === 304;
-        if (headers['content-length'] !== undefined || bodyless) {
-          res.writeHead(status, headers);
-          proxyRes.on('error', () => res.destroy());
-          proxyRes.pipe(res);
-          return;
-        }
-
-        const chunks: Buffer[] = [];
-        proxyRes.on('data', (chunk: Buffer) => chunks.push(chunk));
-        proxyRes.on('end', () => {
-          const body = Buffer.concat(chunks);
-          headers['content-length'] = String(body.length);
-          res.writeHead(status, headers);
-          res.end(body);
-        });
-        proxyRes.on('error', () => {
-          if (!res.headersSent) {
-            res.writeHead(502, { 'content-length': '0' });
-          }
-          res.end();
-        });
+      (proxyRes) => {
+        const resHeaders = { ...proxyRes.headers };
+        delete resHeaders.connection;
+        res.writeHead(proxyRes.statusCode || 200, resHeaders);
+        proxyRes.pipe(res);
       },
-    },
-  }) as RequestHandler;
+    );
+
+    proxyReq.on("error", () => {
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Proxy connection failure" });
+      }
+    });
+
+    req.pipe(proxyReq);
+  };
 }
