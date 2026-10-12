@@ -5610,31 +5610,6 @@ function CustomerSignInModal({
                 <span>Encrypted Customer Identity & Security</span>
               </div>
 
-              {onGoToAdmin && (
-                <div style={{ textAlign: "center", paddingTop: 12, borderTop: "1px solid var(--border)", marginTop: 14 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onGoToAdmin();
-                    }}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "var(--primary)",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
-                  >
-                    <Lock size={12} />
-                    <span>Dealership Owner or Developer? Access Admin Portal →</span>
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
