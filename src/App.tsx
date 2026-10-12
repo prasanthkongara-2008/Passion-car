@@ -1389,27 +1389,6 @@ function PublicView({
             </div>
 
             <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
-              {onGoToAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onGoToAdmin();
-                  }}
-                  className="btn btn-outline btn-sm"
-                  style={{
-                    width: "100%",
-                    justifyContent: "center",
-                    gap: 8,
-                    color: "var(--primary)",
-                    borderColor: "rgba(239, 68, 68, 0.4)",
-                    fontWeight: 700,
-                  }}
-                >
-                  <Shield size={15} />
-                  <span>Admin Portal Login</span>
-                </button>
-              )}
               <button
                 onClick={toggleTheme}
                 className="btn btn-outline btn-sm"
@@ -9128,6 +9107,15 @@ function AdminView({
   const { data: inquiries = [] } = useAdminInquiries();
   const { data: serviceBookings = [] } = useAdminServiceTokens();
 
+  const isDeveloper = Boolean(
+    sessionData?.user &&
+    sessionData.user.email?.toLowerCase() !== "passioncar877@gmail.com" &&
+    sessionData.user.role !== "owner" &&
+    (sessionData.user.role === "developer" ||
+      sessionData.user.email?.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
+      sessionData.user.email?.toLowerCase().includes("kongaraprasanth"))
+  );
+
   const [tab, setTab] = useState<"overview" | "appointments" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">(() => {
     if (typeof window === "undefined") return "overview";
     const h = (window.location.hash || "").toLowerCase();
@@ -9831,6 +9819,7 @@ function AdminView({
             onGoToInquiries={() => handleSelectTab("inquiries")}
             onGoToServices={() => handleSelectTab("services")}
             onGoToGallery={() => handleSelectTab("gallery")}
+            isDeveloper={isDeveloper}
           />
         )}
         {tab === "appointments" && <AdminAppointmentsTab />}
@@ -9839,7 +9828,7 @@ function AdminView({
         {tab === "inquiries" && <AdminInquiriesTab />}
         {tab === "services" && <AdminServicesTab />}
         {tab === "gallery" && <AdminGalleryTab />}
-        {tab === "settings" && <AdminSettingsTab />}
+        {tab === "settings" && <AdminSettingsTab isDeveloper={isDeveloper} />}
       </div>
     </div>
   );
@@ -10377,6 +10366,7 @@ function AdminOverviewTab({
   onGoToInquiries,
   onGoToServices,
   onGoToGallery,
+  isDeveloper: propIsDeveloper,
 }: {
   onGoToAppointments?: () => void;
   onGoToCars: () => void;
@@ -10384,16 +10374,21 @@ function AdminOverviewTab({
   onGoToInquiries?: () => void;
   onGoToServices?: () => void;
   onGoToGallery?: () => void;
+  isDeveloper?: boolean;
 }) {
   const { data: summary, isLoading } = useAdminSummary();
   const { data: inquiries = [] } = useAdminInquiries();
   const { data: sessionData } = useAdminSession();
-  const isDeveloper = sessionData?.user?.role === "developer" ||
-    Boolean(sessionData?.user?.email && (
-      sessionData.user.email.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
-      sessionData.user.email.toLowerCase().includes("kongaraprasanth") ||
-      sessionData.user.email.toLowerCase().includes("developer")
-    ));
+  const isDeveloper = propIsDeveloper !== undefined
+    ? propIsDeveloper
+    : Boolean(
+        sessionData?.user &&
+        sessionData.user.email?.toLowerCase() !== "passioncar877@gmail.com" &&
+        sessionData.user.role !== "owner" &&
+        (sessionData.user.role === "developer" ||
+          sessionData.user.email?.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
+          sessionData.user.email?.toLowerCase().includes("kongaraprasanth"))
+      );
 
   if (isLoading || !summary) {
     return <div style={{ padding: 40, textAlign: "center" }}><RefreshCw className="animate-spin" size={24} /></div>;
@@ -13700,15 +13695,19 @@ Dealership: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad (+91 888
   );
 }
 
-function AdminSettingsTab() {
+function AdminSettingsTab({ isDeveloper: propIsDeveloper }: { isDeveloper?: boolean } = {}) {
   const { data: settings } = useSiteSettings();
   const { data: sessionData } = useAdminSession();
-  const isDeveloper = sessionData?.user?.role === "developer" ||
-    Boolean(sessionData?.user?.email && (
-      sessionData.user.email.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
-      sessionData.user.email.toLowerCase().includes("kongaraprasanth") ||
-      sessionData.user.email.toLowerCase().includes("developer")
-    ));
+  const isDeveloper = propIsDeveloper !== undefined
+    ? propIsDeveloper
+    : Boolean(
+        sessionData?.user &&
+        sessionData.user.email?.toLowerCase() !== "passioncar877@gmail.com" &&
+        sessionData.user.role !== "owner" &&
+        (sessionData.user.role === "developer" ||
+          sessionData.user.email?.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
+          sessionData.user.email?.toLowerCase().includes("kongaraprasanth"))
+      );
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const [adminName, setAdminName] = useState("Passion Car Administrator");
