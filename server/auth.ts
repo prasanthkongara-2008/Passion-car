@@ -6,12 +6,17 @@ export const ALLOWED_ADMINS = [
   {
     email: "passioncar877@gmail.com",
     role: "owner",
-    name: "Mohammed Akbar (Owner)",
+    name: "Mohammed Akbar (Dealership Owner)",
   },
   {
     email: "kongaraprasanth25niat@gmail.com",
-    role: "developer",
-    name: "Prasanth Kongara (Developer)",
+    role: "owner",
+    name: "Prasanth Kongara (Dealership Owner)",
+  },
+  {
+    email: "hirlume.info@gmail.com",
+    role: "owner",
+    name: "Prasanth Kongara (Administrator)",
   },
 ];
 
@@ -46,7 +51,7 @@ function signAdminPayload(payload: string): string {
 export function createAdminSession(email: string): { token: string; user: { email: string; role: string; name: string } } {
   const admin = getAdminUser(email);
   if (!admin) {
-    throw new Error("Access Denied: Only passioncar877@gmail.com and kongaraprasanth25niat@gmail.com are permitted as administrators.");
+    throw new Error("Access Denied: Only passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, and hirlume.info@gmail.com are permitted as administrators.");
   }
 
   const expiresAt = Date.now() + 14 * 24 * 60 * 60 * 1000;
@@ -66,7 +71,7 @@ export function createAdminSession(email: string): { token: string; user: { emai
 export function createAdminSessionWithDetails(user: { email: string; role: string; name: string }): { token: string; user: { email: string; role: string; name: string } } {
   const admin = getAdminUser(user.email);
   if (!admin) {
-    throw new Error("Access Denied: Only passioncar877@gmail.com and kongaraprasanth25niat@gmail.com are permitted as administrators.");
+    throw new Error("Access Denied: Only passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, and hirlume.info@gmail.com are permitted as administrators.");
   }
   const expiresAt = Date.now() + 14 * 24 * 60 * 60 * 1000;
   const payload = `${admin.email}|${admin.role}|${expiresAt}`;
@@ -133,5 +138,5 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     }
   }
 
-  res.status(401).json({ error: "Admin authentication required. Only authorized administrators (passioncar877@gmail.com, kongaraprasanth25niat@gmail.com) may access this resource." });
+  res.status(401).json({ error: "Admin authentication required. Only authorized administrators (passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, hirlume.info@gmail.com) may access this resource." });
 }

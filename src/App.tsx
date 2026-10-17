@@ -2504,34 +2504,6 @@ function PublicView({
                     {link.label}
                   </a>
                 ))}
-                <a
-                  href="#admin"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (onGoToAdmin) onGoToAdmin();
-                    else window.location.hash = "#admin";
-                  }}
-                  className="footer-nav-link"
-                  style={{
-                    color: theme === "light" ? "#475569" : "#f1f5f9",
-                    textDecoration: "none",
-                    fontWeight: 600,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    transition: "color 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#ef4444";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = theme === "light" ? "#475569" : "#f1f5f9";
-                  }}
-                  title="Dealership Admin Portal Redirect"
-                >
-                  <Shield size={13} className="text-red-500" />
-                  <span>Admin Portal</span>
-                </a>
               </div>
             </div>
           </div>
@@ -9815,7 +9787,8 @@ function AdminLogoutBtn() {
 }
 
 function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
-  const [selectedAdminId, setSelectedAdminId] = useState<"owner" | "developer">("owner");
+  const [selectedAdminId, setSelectedAdminId] = useState<"owner_akbar" | "owner_prasanth">("owner_akbar");
+  const [prasanthEmailChoice, setPrasanthEmailChoice] = useState<"kongara" | "hirlume">("kongara");
   const [authMethod, setAuthMethod] = useState<"google" | "password">("google");
   const [password, setPassword] = useState("");
 
@@ -9829,7 +9802,7 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
 
   const ADMINS = [
     {
-      id: "owner" as const,
+      id: "owner_akbar" as const,
       email: "passioncar877@gmail.com",
       name: "Mohammed Akbar",
       role: "Dealership Owner",
@@ -9839,14 +9812,14 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
       desc: "Full dealership operations, car listings & customer records",
     },
     {
-      id: "developer" as const,
-      email: "kongaraprasanth25niat@gmail.com",
+      id: "owner_prasanth" as const,
+      email: prasanthEmailChoice === "hirlume" ? "hirlume.info@gmail.com" : "kongaraprasanth25niat@gmail.com",
       name: "Prasanth Kongara",
-      role: "Platform Developer",
-      title: "Developer / Admin",
-      badgeClass: "badge-blue",
-      icon: Zap,
-      desc: "System engineering, security parameters & database controls",
+      role: "Dealership Owner",
+      title: "Co-Owner / Director",
+      badgeClass: "badge-red",
+      icon: ShieldCheck,
+      desc: "Dealership operations, car listings & client records",
     },
   ];
 
@@ -9942,7 +9915,7 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
         console.warn("GSI init warning", e);
       }
     }
-  }, [authMethod, selectedAdminId]);
+  }, [authMethod, selectedAdminId, prasanthEmailChoice]);
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -10180,6 +10153,7 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
               {ADMINS.map((adm) => {
                 const isSelected = selectedAdminId === adm.id;
+                const isPrasanthCard = adm.id === "owner_prasanth";
                 return (
                   <div
                     key={adm.id}
@@ -10208,6 +10182,47 @@ function AdminLoginView({ onBackToSite }: { onBackToSite: () => void }) {
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, wordBreak: "break-all" }}>
                       {adm.email}
                     </div>
+
+                    {isPrasanthCard && isSelected && (
+                      <div
+                        style={{
+                          marginTop: 10,
+                          paddingTop: 8,
+                          borderTop: "1px dashed var(--border)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 6,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrasanthEmailChoice(prasanthEmailChoice === "kongara" ? "hirlume" : "kongara");
+                            setErrorMsg("");
+                          }}
+                          style={{
+                            background: prasanthEmailChoice === "hirlume" ? "rgba(239, 68, 68, 0.15)" : "rgba(255, 255, 255, 0.06)",
+                            border: prasanthEmailChoice === "hirlume" ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid var(--border)",
+                            color: prasanthEmailChoice === "hirlume" ? "var(--primary)" : "var(--text-muted)",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            width: "100%",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Shield size={11} />
+                          <span>{prasanthEmailChoice === "hirlume" ? "Using: hirlume.info@gmail.com" : "Switch: hirlume.info@gmail.com"}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

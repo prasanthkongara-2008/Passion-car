@@ -70,6 +70,7 @@ const customerAuthLimiter = rateLimit({
 const DEFAULT_ADMIN_HASHES: Record<string, string> = {
   "passioncar877@gmail.com": hashPassword("passioncar877"),
   "kongaraprasanth25niat@gmail.com": hashPassword("passiondev2026"),
+  "hirlume.info@gmail.com": hashPassword("passiondev2026"),
 };
 
 api.post("/upload", uploadLimiter, async (req, res) => {
@@ -203,7 +204,7 @@ api.post("/auth/two-step/init", authLimiter, async (req, res) => {
     const admin = getAdminUser(normalizedEmail);
     if (!admin) {
       res.status(403).json({
-        error: `Account (${normalizedEmail}) is not an authorized administrator. Authorized: passioncar877@gmail.com (Owner), kongaraprasanth25niat@gmail.com (Developer).`,
+        error: `Account (${normalizedEmail}) is not an authorized administrator. Authorized: passioncar877@gmail.com (Owner), kongaraprasanth25niat@gmail.com (Owner), hirlume.info@gmail.com (Administrator).`,
       });
       return;
     }
@@ -390,7 +391,7 @@ api.post("/auth/login", authLimiter, async (req, res) => {
     const admin = getAdminUser(email);
     if (!admin) {
       res.status(403).json({
-        error: "This email is not authorized as an administrator. Use passioncar877@gmail.com or kongaraprasanth25niat@gmail.com",
+        error: "This email is not authorized as an administrator. Use passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, or hirlume.info@gmail.com",
       });
       return;
     }
@@ -463,7 +464,7 @@ api.post("/auth/google", authLimiter, async (req, res) => {
     const admin = getAdminUser(targetEmail);
     if (!admin) {
       res.status(403).json({
-        error: `Access Denied: The Google account (${targetEmail}) is not authorized for administration. Authorized accounts: passioncar877@gmail.com, kongaraprasanth25niat@gmail.com`,
+        error: `Access Denied: The Google account (${targetEmail}) is not authorized for administration. Authorized accounts: passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, hirlume.info@gmail.com`,
       });
       return;
     }

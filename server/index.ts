@@ -89,7 +89,7 @@ if (clerkConfigured) {
     console.warn("Clerk initialization skipped:", err instanceof Error ? err.message : err);
   }
 } else {
-  console.log("Using direct admin credential authentication (passioncar877@gmail.com, kongaraprasanth25niat@gmail.com).");
+  console.log("Using direct admin credential authentication (passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, hirlume.info@gmail.com).");
 }
 
 app.use(express.static(path.resolve(dirname, "../public")));
@@ -126,7 +126,7 @@ async function start() {
   app.listen(port, "0.0.0.0", () => {
     console.log(`Passion Car Platform running on http://localhost:${port}`);
     console.log(`Admin Login: http://localhost:${port}/admin`);
-    console.log("Authorized Admins: passioncar877@gmail.com, kongaraprasanth25niat@gmail.com");
+    console.log("Authorized Admins: passioncar877@gmail.com, kongaraprasanth25niat@gmail.com, hirlume.info@gmail.com");
   });
 }
 
