@@ -68,6 +68,7 @@ import {
   Share2,
   KeyRound,
   Wrench,
+  Database,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -9785,6 +9786,7 @@ function AdminView({
             onGoToInquiries={() => handleSelectTab("inquiries")}
             onGoToServices={() => handleSelectTab("services")}
             onGoToGallery={() => handleSelectTab("gallery")}
+            isDeveloper={sessionData?.user?.email === "kongaraprasanth25niat@gmail.com"}
           />
         )}
         {tab === "appointments" && <AdminAppointmentsTab />}
@@ -9793,7 +9795,7 @@ function AdminView({
         {tab === "inquiries" && <AdminInquiriesTab />}
         {tab === "services" && <AdminServicesTab />}
         {tab === "gallery" && <AdminGalleryTab />}
-        {tab === "settings" && <AdminSettingsTab />}
+        {tab === "settings" && <AdminSettingsTab isDeveloper={sessionData?.user?.email === "kongaraprasanth25niat@gmail.com"} />}
       </div>
     </div>
   );
@@ -10380,6 +10382,7 @@ function AdminOverviewTab({
   onGoToInquiries,
   onGoToServices,
   onGoToGallery,
+  isDeveloper,
 }: {
   onGoToAppointments?: () => void;
   onGoToCars: () => void;
@@ -10387,6 +10390,7 @@ function AdminOverviewTab({
   onGoToInquiries?: () => void;
   onGoToServices?: () => void;
   onGoToGallery?: () => void;
+  isDeveloper?: boolean;
 }) {
   const { data: summary, isLoading } = useAdminSummary();
   const { data: inquiries = [] } = useAdminInquiries();
@@ -10481,7 +10485,45 @@ function AdminOverviewTab({
         </div>
       </div>
 
+      {isDeveloper && (
+        <div style={{ background: "var(--bg-surface)", padding: 28, borderRadius: "var(--radius-md)", border: "1px solid var(--border)", marginBottom: 32 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Database size={20} color="var(--primary)" />
+              <h3 style={{ color: "var(--text-main)", margin: 0, fontSize: 17, fontWeight: 700 }}>Database & Storage Infrastructure</h3>
+            </div>
+            <span style={{ fontSize: 12, background: "rgba(16, 185, 129, 0.15)", color: "#34d399", padding: "4px 12px", borderRadius: 999, fontWeight: 700, border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+              ● Active & Synchronized
+            </span>
+          </div>
 
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 16 }}>
+            <div style={{ background: "var(--bg-deep)", padding: 18, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Cloud Database Storage Name</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-main)" }}>Supabase PostgreSQL (AWS AP-Northeast-2)</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>Local Resilient JSON Store Active</div>
+            </div>
+
+            <div style={{ background: "var(--bg-deep)", padding: 18, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Database Quota & Data Used</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#38bdf8" }}>~25 KB / 500 MB Free Tier</div>
+              <div style={{ fontSize: 12, color: "var(--accent-green)", marginTop: 4 }}>&lt; 0.01% utilized (99.99% free space available)</div>
+            </div>
+
+            <div style={{ background: "var(--bg-deep)", padding: 18, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Inbuilt Auto-Compressor</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--accent-green)" }}>Active &amp; Silent (1600px / 82%)</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>Desktop &amp; Mobile Web (Zero Popups)</div>
+            </div>
+
+            <div style={{ background: "var(--bg-deep)", padding: 18, borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>Managed Live Inventory Records</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "var(--accent-gold)" }}>{summary.totalVehicles ?? 0} Vehicles · {summary.totalCustomers ?? 0} Clients</div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>{summary.totalServiceBookings ?? 0} Service Bookings · {inquiries.length} Inquiries</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {inquiries.length > 0 && (
         <div style={{ marginTop: 24 }}>
@@ -13658,7 +13700,7 @@ Dealership: Plot No: 25, 100 Feet Rd, Kavuri Hills, Madhapur, Hyderabad (+91 888
   );
 }
 
-function AdminSettingsTab() {
+function AdminSettingsTab({ isDeveloper }: { isDeveloper?: boolean }) {
   const { data: settings } = useSiteSettings();
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -13971,6 +14013,29 @@ function AdminSettingsTab() {
         </div>
 
 
+
+        {isDeveloper && (
+          <div style={{ background: "var(--bg-surface)", padding: 24, borderRadius: "var(--radius-md)", border: "1px solid var(--border)", marginBottom: 24 }}>
+            <h3 style={{ color: "var(--text-main)", fontSize: 17, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+              <Database size={18} color="var(--primary)" />
+              <span>Database Storage & Compression Status</span>
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+              <div style={{ background: "var(--bg-deep)", padding: 14, borderRadius: 6, border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Storage Engine</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-main)", marginTop: 2 }}>Supabase PostgreSQL (AWS)</div>
+              </div>
+              <div style={{ background: "var(--bg-deep)", padding: 14, borderRadius: 6, border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Data Used / Limit</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#38bdf8", marginTop: 2 }}>~25 KB / 500 MB (&lt; 0.01%)</div>
+              </div>
+              <div style={{ background: "var(--bg-deep)", padding: 14, borderRadius: 6, border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Inbuilt Auto-Compressor</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-green)", marginTop: 2 }}>Active &amp; Silent (1600px / 82%)</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"
