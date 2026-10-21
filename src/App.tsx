@@ -899,28 +899,6 @@ function PublicView({
                 </button>
               </li>
               <li>
-                <a
-                  href="#admin"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (onGoToAdmin) onGoToAdmin();
-                    else window.location.hash = "#admin";
-                  }}
-                  className="nav-link"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    color: "var(--primary)",
-                    fontWeight: 700,
-                  }}
-                  title="Admin Portal Login"
-                >
-                  <ShieldCheck size={14} />
-                  <span>Admin</span>
-                </a>
-              </li>
-              <li>
                 {customerUser ? (
                   <button
                     onClick={handleOpenCustomerProfile}
@@ -1470,34 +1448,6 @@ function PublicView({
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
                 <MapPin size={16} /> <span>Visit Showroom & Map</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onGoToAdmin) onGoToAdmin();
-                  else window.location.hash = "#admin";
-                }}
-                className="mobile-nav-item"
-                style={{
-                  background: "rgba(239, 68, 68, 0.12)",
-                  border: "1px solid rgba(239, 68, 68, 0.35)",
-                  borderRadius: "var(--radius-sm)",
-                  padding: "11px 14px",
-                  textAlign: "left",
-                  width: "100%",
-                  cursor: "pointer",
-                  font: "inherit",
-                  color: "var(--primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  fontWeight: 800,
-                  marginTop: 10,
-                }}
-              >
-                <ShieldCheck size={18} className="text-red-500" />
-                <span>Admin Login / Portal</span>
               </button>
             </div>
 
