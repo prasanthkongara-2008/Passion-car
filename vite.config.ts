@@ -19,5 +19,19 @@ export default defineConfig({
   build: {
     outDir: "dist/public",
     emptyOutDir: true,
+    minify: "esbuild",
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes("node_modules")) {
+            if (id.includes("lucide-react")) return "icons";
+            if (id.includes("@tanstack") || id.includes("framer-motion")) return "libs";
+            return "vendor";
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 });
