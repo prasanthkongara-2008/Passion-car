@@ -15,6 +15,7 @@ import {
   Award,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
   Eye,
   EyeOff,
   Key,
@@ -503,6 +504,31 @@ function PublicView({
   });
   const [initialBookingPhone, setInitialBookingPhone] = useState<string>("");
 
+  const [pageMode, setPageMode] = useState<"home" | "catalog">(() => {
+    if (typeof window === "undefined") return "home";
+    const path = (window.location.pathname || "").toLowerCase();
+    const hash = (window.location.hash || "").toLowerCase();
+    return path.startsWith("/catalog") || hash.startsWith("#catalog") || hash.startsWith("#inventory") ? "catalog" : "home";
+  });
+
+  const navigateToCatalog = () => {
+    setPageMode("catalog");
+    setMobileMenuOpen(false);
+    if (window.location.hash !== "#catalog") {
+      window.history.pushState({ page: "catalog" }, "", "#catalog");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const navigateToHome = () => {
+    setPageMode("home");
+    setMobileMenuOpen(false);
+    if (window.location.hash !== "#home" && window.location.hash !== "") {
+      window.history.pushState({ page: "home" }, "", "/#home");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleOpenBookings = (phonePrefill?: string) => {
     setMobileMenuOpen(false);
     if (phonePrefill) {
@@ -543,6 +569,13 @@ function PublicView({
       try {
         window.history.replaceState({}, "", window.location.pathname + window.location.search);
       } catch {}
+    }
+    if (targetId === "inventory" || targetId === "catalog") {
+      navigateToCatalog();
+      return;
+    }
+    if (pageMode === "catalog") {
+      setPageMode("home");
     }
     const cleanId = targetId.replace(/^#/, "");
     setTimeout(() => {
@@ -650,6 +683,9 @@ function PublicView({
     const syncRoute = () => {
       const path = window.location.pathname || "";
       const hash = window.location.hash || "";
+
+      const isCatalog = path.startsWith("/catalog") || hash.startsWith("#catalog") || hash.startsWith("#inventory");
+      setPageMode(isCatalog ? "catalog" : "home");
 
       const carPathMatch = path.match(/^\/car\/(\d+)/);
       const carHashMatch = hash.match(/^#car(?:-|\/)(\d+)/);
@@ -783,7 +819,15 @@ function PublicView({
       
       <header className="navbar">
         <div className="nav-container">
-          <a href="#home" className="brand-logo" title="Passion Car Hyderabad">
+          <a
+            href="#home"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateToHome();
+            }}
+            className="brand-logo"
+            title="Passion Car Hyderabad"
+          >
             <div className="brand-logo-badge">
               <img
                 src="/images/logo.png"
@@ -798,21 +842,42 @@ function PublicView({
 
           <nav>
             <ul className="nav-menu">
-              <li><a href="#home" className="nav-link">Home</a></li>
               <li>
                 <a
-                  href="#inventory"
+                  href="#home"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigateToHome();
+                  }}
+                  className={`nav-link ${pageMode === "home" ? "active" : ""}`}
+                >
+                  Home
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#catalog"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigateToCatalog();
+                  }}
                   className="nav-link"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 700 }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontWeight: 700,
+                    color: pageMode === "catalog" ? "var(--primary)" : undefined,
+                  }}
                 >
                   <Car size={14} className="text-red-500" />
                   <span>Catalog</span>
                 </a>
               </li>
-              <li><a href="#sell" className="nav-link">Sell Car</a></li>
-              <li><a href="#service" className="nav-link">Services</a></li>
-              <li><a href="#reviews" className="nav-link">Reviews</a></li>
-              <li><a href="#contact" className="nav-link">Contact</a></li>
+              <li><a href="#sell" onClick={() => { if (pageMode === "catalog") setPageMode("home"); }} className="nav-link">Sell Car</a></li>
+              <li><a href="#service" onClick={() => { if (pageMode === "catalog") setPageMode("home"); }} className="nav-link">Services</a></li>
+              <li><a href="#reviews" onClick={() => { if (pageMode === "catalog") setPageMode("home"); }} className="nav-link">Reviews</a></li>
+              <li><a href="#contact" onClick={() => { if (pageMode === "catalog") setPageMode("home"); }} className="nav-link">Contact</a></li>
               <li>
                 <button
                   onClick={() => handleOpenBookings()}
@@ -832,6 +897,28 @@ function PublicView({
                   <Ticket size={14} className="text-red-500" />
                   <span>My Bookings</span>
                 </button>
+              </li>
+              <li>
+                <a
+                  href="#admin"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onGoToAdmin) onGoToAdmin();
+                    else window.location.hash = "#admin";
+                  }}
+                  className="nav-link"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    color: "var(--primary)",
+                    fontWeight: 700,
+                  }}
+                  title="Admin Portal Login"
+                >
+                  <ShieldCheck size={14} />
+                  <span>Admin</span>
+                </a>
               </li>
               <li>
                 {customerUser ? (
@@ -952,7 +1039,11 @@ function PublicView({
             )}
 
             <a
-              href="#inventory"
+              href="#catalog"
+              onClick={(e) => {
+                e.preventDefault();
+                navigateToCatalog();
+              }}
               className="mobile-header-catalog-btn"
               title="Browse Car Catalog"
             >
@@ -1380,6 +1471,34 @@ function PublicView({
               >
                 <MapPin size={16} /> <span>Visit Showroom & Map</span>
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onGoToAdmin) onGoToAdmin();
+                  else window.location.hash = "#admin";
+                }}
+                className="mobile-nav-item"
+                style={{
+                  background: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "11px 14px",
+                  textAlign: "left",
+                  width: "100%",
+                  cursor: "pointer",
+                  font: "inherit",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  fontWeight: 800,
+                  marginTop: 10,
+                }}
+              >
+                <ShieldCheck size={18} className="text-red-500" />
+                <span>Admin Login / Portal</span>
+              </button>
             </div>
 
             <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1478,7 +1597,173 @@ function PublicView({
       )}
 
       
-      <section id="home" className="hero-section">
+      {pageMode === "catalog" ? (
+        <main style={{ minHeight: "85vh", padding: "40px 0 90px", background: "var(--bg-deep)" }}>
+          <div className="container">
+            <div style={{ marginBottom: 28, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>
+                  <button
+                    type="button"
+                    onClick={navigateToHome}
+                    style={{ background: "transparent", border: 0, color: "var(--primary)", fontWeight: 700, cursor: "pointer", padding: 0 }}
+                  >
+                    Home
+                  </button>
+                  <span>/</span>
+                  <span style={{ color: "var(--text-main)", fontWeight: 600 }}>Car Catalog</span>
+                </div>
+                <h1 style={{ fontSize: "clamp(26px, 4vw, 38px)", color: "var(--text-main)", margin: 0, fontWeight: 800 }}>
+                  Verified Car Catalog
+                </h1>
+                <p style={{ color: "var(--text-muted)", marginTop: 6, fontSize: 14 }}>
+                  Showing {vehicles.length} verified handpicked cars • 150-Point Certified Inspection • Transparent Pricing
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={navigateToHome}
+                className="btn btn-outline btn-sm"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <ArrowLeft size={15} />
+                <span>Back to Home</span>
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                padding: "20px 24px",
+                marginBottom: 36,
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ flex: "1 1 280px", position: "relative" }}>
+                  <Search
+                    size={18}
+                    style={{
+                      position: "absolute",
+                      left: 14,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--text-dim)",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search by Brand, Model (Polo, City, Creta...)"
+                    value={filters.search || ""}
+                    onChange={(e) => setFilters((p) => ({ ...p, search: e.target.value }))}
+                    className="form-input"
+                    style={{ width: "100%", paddingLeft: 42 }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["Petrol", "Diesel", "EV", "Hybrid", "CNG"].map((fuel) => (
+                    <button
+                      key={fuel}
+                      onClick={() => handleFuelFilter(fuel)}
+                      className={`btn btn-sm ${filters.fuelType === fuel ? "btn-primary" : "btn-glass"}`}
+                    >
+                      <Fuel size={14} />
+                      <span>{fuel}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["Hatchback", "Sedan", "SUV"].map((body) => (
+                    <button
+                      key={body}
+                      onClick={() => handleBodyTypeFilter(body)}
+                      className={`btn btn-sm ${filters.bodyType === body ? "btn-primary" : "btn-glass"}`}
+                    >
+                      <span>{body}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Sort:</span>
+                  <select
+                    value={filters.sort || "recommended"}
+                    onChange={(e) => setFilters((p) => ({ ...p, sort: e.target.value as any }))}
+                    className="form-select"
+                    style={{ padding: "8px 12px", minWidth: 160 }}
+                  >
+                    <option value="recommended">Recommended</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="year-desc">Year: Newest First</option>
+                    <option value="km-asc">Kilometers: Lowest</option>
+                  </select>
+                </div>
+
+                {(filters.search || filters.fuelType || filters.bodyType || filters.brand) && (
+                  <button
+                    onClick={() => setFilters({ sort: "recommended" })}
+                    className="btn btn-outline btn-sm"
+                  >
+                    <RefreshCw size={14} />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {loadingVehicles ? (
+              <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-muted)" }}>
+                <RefreshCw className="animate-spin" size={32} style={{ margin: "0 auto 16px" }} />
+                <p>Loading verified cars...</p>
+              </div>
+            ) : vehicles.length === 0 ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "80px 20px",
+                  background: "var(--bg-surface)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <Car size={48} style={{ color: "var(--text-dim)", margin: "0 auto 16px" }} />
+                <h3 style={{ marginBottom: 8, color: "var(--text-main)" }}>No matching vehicles found</h3>
+                <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>
+                  Try adjusting your search criteria or clear active filters.
+                </p>
+                <button onClick={() => setFilters({ sort: "recommended" })} className="btn btn-primary">
+                  View All Cars
+                </button>
+              </div>
+            ) : (
+              <div className="inventory-grid">
+                {vehicles.map((v) => (
+                  <CarCard
+                    key={v.id}
+                    vehicle={v}
+                    onViewDetails={() => handleOpenCar(v.id)}
+                    onInquire={() =>
+                      handleOpenInquiry({
+                        type: "buy",
+                        vehicleId: v.id,
+                        vehicleTitle: `${v.year} ${v.make} ${v.model} ${v.variant}`,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+      ) : (
+        <>
+          <section id="home" className="hero-section">
         <div className="hero-slider-wrap">
           <div
             className="hero-slider-track"
@@ -1552,10 +1837,14 @@ function PublicView({
             </div>
 
             <div className="hero-ctas">
-              <a href="#inventory" className="btn btn-primary btn-lg">
+              <button
+                type="button"
+                onClick={navigateToCatalog}
+                className="btn btn-primary btn-lg"
+              >
                 <Car size={18} />
                 <span>Browse Car Catalog ({vehicles.length})</span>
-              </a>
+              </button>
 
               <button
                 onClick={() => handleOpenInquiry({ type: "sell" })}
@@ -2421,8 +2710,9 @@ function PublicView({
           </div>
         </div>
       </section>
+      </>
+      )}
 
-      
       <footer style={{ padding: "60px 0 30px", background: "var(--bg-deep)", borderTop: "1px solid var(--border)" }}>
         <div className="container">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20, marginBottom: 40 }}>
@@ -2571,24 +2861,21 @@ function PublicView({
                   else window.location.hash = "#admin";
                 }}
                 style={{
-                  color: theme === "light" ? "#64748b" : "#cbd5e1",
+                  color: "#ffffff",
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
+                  gap: 6,
                   textDecoration: "none",
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: 12,
-                  transition: "color 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#ef4444";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = theme === "light" ? "#64748b" : "#cbd5e1";
+                  background: "var(--primary)",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  boxShadow: "0 2px 8px rgba(239, 68, 68, 0.35)",
                 }}
                 title="Dealership Admin Portal Redirect"
               >
-                <Shield size={12} className="text-red-500" />
+                <ShieldCheck size={13} />
                 <span>Admin Login</span>
               </a>
             </div>
