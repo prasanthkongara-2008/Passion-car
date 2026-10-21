@@ -503,6 +503,14 @@ function PublicView({
   });
   const [initialBookingPhone, setInitialBookingPhone] = useState<string>("");
 
+  const { data: adminSessionData } = useAdminSession();
+  const isDeveloperOrAdmin = Boolean(
+    adminSessionData?.authenticated ||
+    customerUser?.email?.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
+    customerUser?.email?.toLowerCase() === "hirlume.info@gmail.com" ||
+    customerUser?.email?.toLowerCase() === "passioncar877@gmail.com"
+  );
+
   const handleOpenBookings = (phonePrefill?: string) => {
     setMobileMenuOpen(false);
     if (phonePrefill) {
@@ -824,6 +832,34 @@ function PublicView({
                   <span>My Bookings</span>
                 </button>
               </li>
+              {isDeveloperOrAdmin && (
+                <li>
+                  <button
+                    onClick={() => {
+                      if (onGoToAdmin) onGoToAdmin();
+                      else window.location.hash = "#admin";
+                    }}
+                    className="nav-link"
+                    style={{
+                      background: "rgba(239, 68, 68, 0.15)",
+                      border: "1px solid rgba(239, 68, 68, 0.4)",
+                      borderRadius: "var(--radius-full)",
+                      padding: "4px 12px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      color: "var(--primary)",
+                      fontWeight: 700,
+                      fontSize: 13,
+                    }}
+                    title="Open Admin Page"
+                  >
+                    <ShieldCheck size={14} />
+                    <span>Admin Page</span>
+                  </button>
+                </li>
+              )}
               <li>
                 {customerUser ? (
                   <button
@@ -939,6 +975,30 @@ function PublicView({
               >
                 <User size={13} />
                 <span>Sign In</span>
+              </button>
+            )}
+
+            {isDeveloperOrAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onGoToAdmin) onGoToAdmin();
+                  else window.location.hash = "#admin";
+                }}
+                className="btn btn-primary btn-sm"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  boxShadow: "0 2px 8px rgba(239, 68, 68, 0.35)",
+                }}
+                title="Admin Page"
+              >
+                <ShieldCheck size={13} />
+                <span>Admin Page</span>
               </button>
             )}
 
@@ -1361,6 +1421,34 @@ function PublicView({
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
                 <MapPin size={16} /> <span>Visit Showroom & Map</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onGoToAdmin) onGoToAdmin();
+                  else window.location.hash = "#admin";
+                }}
+                className="mobile-nav-item"
+                style={{
+                  background: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "10px 14px",
+                  textAlign: "left",
+                  width: "100%",
+                  cursor: "pointer",
+                  font: "inherit",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  fontWeight: 700,
+                  marginTop: 6,
+                }}
+              >
+                <ShieldCheck size={18} className="text-red-500" />
+                <span>Admin Page / Portal</span>
               </button>
             </div>
 
@@ -9042,6 +9130,12 @@ function AdminView({
   const { data: serviceBookings = [] } = useAdminServiceTokens();
   const switchProfileMutation = useSwitchAdminProfile();
 
+  const isDeveloper = Boolean(
+    sessionData?.user?.email?.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
+    sessionData?.user?.name?.toLowerCase().includes("developer")
+  );
+  const isHirlumeAdmin = Boolean(sessionData?.user?.email?.toLowerCase() === "hirlume.info@gmail.com");
+
   const [tab, setTab] = useState<"overview" | "appointments" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">(() => {
     if (typeof window === "undefined") return "overview";
     const h = (window.location.hash || "").toLowerCase();
@@ -9592,7 +9686,7 @@ function AdminView({
             )}
           </div>
 
-          {sessionData?.user?.email === "kongaraprasanth25niat@gmail.com" ? (
+          {isDeveloper ? (
             <button
               type="button"
               onClick={() => switchProfileMutation.mutate("hirlume.info@gmail.com")}
@@ -9612,7 +9706,7 @@ function AdminView({
               <ShieldCheck size={14} />
               <span>{switchProfileMutation.isPending ? "Switching..." : "Admin Page"}</span>
             </button>
-          ) : sessionData?.user?.email === "hirlume.info@gmail.com" ? (
+          ) : isHirlumeAdmin ? (
             <button
               type="button"
               onClick={() => switchProfileMutation.mutate("kongaraprasanth25niat@gmail.com")}
@@ -9786,7 +9880,7 @@ function AdminView({
             onGoToInquiries={() => handleSelectTab("inquiries")}
             onGoToServices={() => handleSelectTab("services")}
             onGoToGallery={() => handleSelectTab("gallery")}
-            isDeveloper={sessionData?.user?.email === "kongaraprasanth25niat@gmail.com"}
+            isDeveloper={isDeveloper}
           />
         )}
         {tab === "appointments" && <AdminAppointmentsTab />}
@@ -9795,7 +9889,7 @@ function AdminView({
         {tab === "inquiries" && <AdminInquiriesTab />}
         {tab === "services" && <AdminServicesTab />}
         {tab === "gallery" && <AdminGalleryTab />}
-        {tab === "settings" && <AdminSettingsTab isDeveloper={sessionData?.user?.email === "kongaraprasanth25niat@gmail.com"} />}
+        {tab === "settings" && <AdminSettingsTab isDeveloper={isDeveloper} />}
       </div>
     </div>
   );
