@@ -16,18 +16,29 @@ app.set("trust proxy", 1);
 
 const allowedOrigins = [
   process.env.APP_URL,
-  "https://passion-car.onrender.com",
   "https://www.passioncar.in",
   "https://passioncar.in",
+  "http://www.passioncar.in",
+  "http://passioncar.in",
+  "https://passion-car.onrender.com",
   "http://localhost:5000",
   "http://localhost:5173",
   "http://127.0.0.1:5000",
+  "http://127.0.0.1:5173",
 ].filter(Boolean) as string[];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      const cleanOrigin = origin ? origin.replace(/\/+$/, "") : "";
+      if (
+        !cleanOrigin ||
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith(".passioncar.in") ||
+        cleanOrigin === "https://passioncar.in" ||
+        cleanOrigin === "http://passioncar.in" ||
+        process.env.NODE_ENV !== "production"
+      ) {
         callback(null, true);
       } else {
         callback(new Error("CORS request blocked by security policy."));
@@ -49,7 +60,7 @@ app.use((_req, res, next) => {
   }
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://accounts.google.com https://apis.google.com; frame-src 'self' https://accounts.google.com https://www.google.com;",
+    "default-src 'self' https://www.passioncar.in https://passioncar.in; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.passioncar.in https://passioncar.in; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob: https://www.passioncar.in https://passioncar.in; connect-src 'self' https://www.passioncar.in https://passioncar.in https://passion-car.onrender.com https://accounts.google.com https://apis.google.com; frame-src 'self' https://accounts.google.com https://www.google.com https://www.passioncar.in https://passioncar.in;",
   );
   next();
 });

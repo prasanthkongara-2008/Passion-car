@@ -72,11 +72,13 @@ export async function sendOtpEmail(opts: SendOtpOptions): Promise<{ success: boo
     }
   }
 
-  console.log(`\n========================================`);
-  console.log(`📧 [EMAIL OTP DISPATCH] To: ${to}`);
-  console.log(`🔑 6-Digit Security OTP: ${otp}`);
-  if (magicUrl) console.log(`🔗 1-Click Magic URL: ${magicUrl}`);
-  console.log(`========================================\n`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n========================================`);
+    console.log(`📧 [EMAIL OTP DISPATCH] To: ${to}`);
+    console.log(`🔑 6-Digit Security OTP: ${otp}`);
+    if (magicUrl) console.log(`🔗 1-Click Magic URL: ${magicUrl}`);
+    console.log(`========================================\n`);
+  }
 
   return { success: true, preview: `Local dev dispatched: OTP ${otp}` };
 }

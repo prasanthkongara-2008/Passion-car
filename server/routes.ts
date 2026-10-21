@@ -245,8 +245,8 @@ api.post("/auth/two-step/init", authLimiter, async (req, res) => {
     const otp = generateSecureOtp();
     const tfaToken = generateSecureToken("tfa", 24);
     const magicToken = generateSecureToken("magic", 20);
-    const host = req.get("host") || "localhost:5000";
-    const protocol = req.protocol || "http";
+    const host = req.get("host") || (process.env.NODE_ENV === "production" ? "www.passioncar.in" : "localhost:5000");
+    const protocol = req.headers["x-forwarded-proto"] === "https" || req.protocol === "https" || process.env.NODE_ENV === "production" ? "https" : req.protocol || "http";
     const magicUrl = `${protocol}://${host}/admin?magic=${magicToken}`;
 
     twoFactorStore.set(tfaToken, {
@@ -872,8 +872,8 @@ api.post("/auth/magic-link/generate", authLimiter, async (req, res) => {
     const token = generateSecureToken("magic", 24);
     magicStore.set(token, { email: admin.email, expiresAt: Date.now() + 15 * 60_000 });
 
-    const host = req.get("host") || "localhost:5000";
-    const protocol = req.protocol || "http";
+    const host = req.get("host") || (process.env.NODE_ENV === "production" ? "www.passioncar.in" : "localhost:5000");
+    const protocol = req.headers["x-forwarded-proto"] === "https" || req.protocol === "https" || process.env.NODE_ENV === "production" ? "https" : req.protocol || "http";
     const magicUrl = `${protocol}://${host}/admin?magic=${token}`;
 
     try {

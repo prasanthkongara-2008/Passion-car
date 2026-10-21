@@ -1,6 +1,8 @@
 export const site = {
   name: "Passion Car",
   tagline: "Driven by Trust. Powered by Passion.",
+  domain: "https://www.passioncar.in",
+  canonicalUrl: "https://www.passioncar.in",
   city: "Hyderabad",
   phone: "+91 88858 58380",
   phoneRaw: "918885858380",
