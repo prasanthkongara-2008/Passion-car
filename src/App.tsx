@@ -797,7 +797,7 @@ function PublicView({
           <nav>
             <ul className="nav-menu">
               <li><a href="#home" className="nav-link">Home</a></li>
-              <li><a href="#inventory" className="nav-link">Buy Cars</a></li>
+              <li><a href="#inventory" className="nav-link">Catalog</a></li>
               <li><a href="#sell" className="nav-link">Sell Car</a></li>
               <li><a href="#service" className="nav-link">Services</a></li>
               <li><a href="#reviews" className="nav-link">Reviews</a></li>
@@ -897,23 +897,13 @@ function PublicView({
             <button
               onClick={toggleTheme}
               className="theme-toggle-btn"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                minWidth: 76,
-                height: 36,
-                padding: "0 16px",
-                borderRadius: 9999,
-                lineHeight: 1,
-                boxSizing: "border-box",
-                overflow: "visible",
-              }}
               title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
               aria-label="Toggle light or dark theme"
             >
-              <span style={{ display: "inline-block", width: "100%", textAlign: "center", lineHeight: 1 }}>
+              <span className="theme-toggle-icon">
+                {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+              </span>
+              <span className="theme-toggle-text">
                 {theme === "dark" ? "Light" : "Dark"}
               </span>
             </button>
@@ -924,44 +914,19 @@ function PublicView({
                 onClick={handleOpenCustomerProfile}
                 className="mobile-header-user-btn"
                 title="Customer Profile & Settings"
-                style={{
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "5px 10px",
-                  borderRadius: "var(--radius-full)",
-                  background: "rgba(239, 68, 68, 0.12)",
-                  border: "1px solid rgba(239, 68, 68, 0.35)",
-                  color: "var(--text-main)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
               >
                 {customerUser.photo ? (
                   <img
                     src={customerUser.photo}
                     alt={customerUser.name}
-                    style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }}
+                    className="mobile-header-user-avatar"
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      background: "var(--primary)",
-                      color: "#ffffff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      fontWeight: 800,
-                    }}
-                  >
+                  <div className="mobile-header-user-initial">
                     {customerUser.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span>{customerUser.name.split(" ")[0]}</span>
+                <span className="mobile-header-user-name">{customerUser.name.split(" ")[0]}</span>
               </button>
             ) : (
               <button
@@ -969,19 +934,6 @@ function PublicView({
                 onClick={handleOpenCustomerAuth}
                 className="mobile-header-signin-btn"
                 title="Sign In"
-                style={{
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "6px 12px",
-                  borderRadius: "var(--radius-full)",
-                  background: "var(--primary)",
-                  color: "#ffffff",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  border: "none",
-                  cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(239, 68, 68, 0.35)",
-                }}
               >
                 <User size={13} />
                 <span>Sign In</span>
@@ -1014,7 +966,7 @@ function PublicView({
               aria-label="Toggle navigation menu"
               title="Menu"
             >
-              <Menu size={22} />
+              <Menu size={20} strokeWidth={2.4} />
             </button>
           </div>
         </div>
@@ -1281,9 +1233,9 @@ function PublicView({
                 type="button"
                 onClick={() => handleMenuNav("inventory")}
                 className="mobile-nav-item"
-                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
+                style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12, fontWeight: 700 }}
               >
-                <Search size={16} /> <span>Buy Cars</span>
+                <Car size={18} className="text-red-500" /> <span>Car Catalog</span>
               </button>
               <button
                 type="button"
@@ -1559,7 +1511,7 @@ function PublicView({
             <div className="hero-ctas">
               <a href="#inventory" className="btn btn-primary btn-lg">
                 <Car size={18} />
-                <span>Browse Inventory ({vehicles.length})</span>
+                <span>Browse Car Catalog ({vehicles.length})</span>
               </a>
 
               <button
@@ -1704,10 +1656,10 @@ function PublicView({
             <div>
               <div className="badge badge-red" style={{ marginBottom: 12 }}>
                 <Car size={14} />
-                <span>Certified Pre-Owned Inventory</span>
+                <span>Car Catalog • 150-Point Certified</span>
               </div>
               <h2 style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--text-main)" }}>
-                Explore Available Cars in Hyderabad
+                Browse Our Verified Car Catalog
               </h2>
               <p style={{ color: "var(--text-muted)", marginTop: 8 }}>
                 Every car undergoes our 150-point inspection and comes with transparent pricing.
@@ -2474,7 +2426,7 @@ function PublicView({
               <div className="footer-nav-row">
                 {[
                   { href: "#home", label: "Home" },
-                  { href: "#inventory", label: "Buy Cars" },
+                  { href: "#inventory", label: "Car Catalog" },
                   { href: "#gallery", label: "Gallery" },
                   { href: "#sell", label: "Sell Car" },
                   { href: "#services", label: "Services" },
@@ -2949,6 +2901,11 @@ function MobileBottomBar({
 
   return (
     <nav className="mobile-bottom-bar" aria-label="Quick mobile contact actions">
+      <a href="#inventory" className="mobile-bar-btn" title="View Cars Catalog">
+        <Car size={18} color="var(--primary)" />
+        <span>Catalog</span>
+      </a>
+
       <a href={`tel:${cleanPhone}`} className="mobile-bar-btn" title="Call Showroom">
         <Phone size={18} className="text-red-500" />
         <span>Call</span>
