@@ -219,6 +219,24 @@ export function useAdminLogin() {
   });
 }
 
+export function useSwitchAdminProfile() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (targetEmail: string) => {
+      const res = await request<{ success: boolean; token: string; user: AdminUser }>("/api/auth/switch-profile", {
+        method: "POST",
+        body: JSON.stringify({ targetEmail }),
+      });
+      setAdminToken(res.token);
+      return res;
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: adminKeys.session });
+      client.invalidateQueries({ queryKey: adminKeys.summary });
+    },
+  });
+}
+
 export function useGoogleLogin() {
   const client = useQueryClient();
   return useMutation({

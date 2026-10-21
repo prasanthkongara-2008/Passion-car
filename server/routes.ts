@@ -945,11 +945,35 @@ api.get("/auth/session", async (req, res) => {
     user: {
       email: session.email,
       role: session.role,
-      name: session.email === "passioncar877@gmail.com" ? (settings.adminName || "Mohammed Akbar (Owner)") : (session.name || "Prasanth Kongara (Developer)"),
+      name:
+        session.email === "passioncar877@gmail.com"
+          ? (settings.adminName || "Mohammed Akbar (Owner)")
+          : session.email === "hirlume.info@gmail.com"
+          ? "Prasanth Kongara (Administrator)"
+          : (session.name || "Prasanth Kongara (Developer)"),
       photo: session.email === "passioncar877@gmail.com" ? (settings.adminPhoto || "") : "",
       phone: session.email === "passioncar877@gmail.com" ? (settings.adminPhone || "+91 88858 58380") : "+91 88858 58380",
     },
   });
+});
+
+api.post("/auth/switch-profile", requireAdmin, async (req, res) => {
+  try {
+    const { targetEmail } = req.body || {};
+    const admin = getAdminUser(targetEmail);
+    if (!admin) {
+      res.status(403).json({ error: "Unauthorized target profile." });
+      return;
+    }
+    const session = createAdminSession(admin.email);
+    res.json({
+      success: true,
+      token: session.token,
+      user: session.user,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to switch admin profile." });
+  }
 });
 
 api.post("/auth/logout", async (req, res) => {

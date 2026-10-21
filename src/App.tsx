@@ -84,6 +84,7 @@ import {
   useCreateInquiry,
   useAdminSession,
   useAdminLogin,
+  useSwitchAdminProfile,
   useGoogleLogin,
   useCustomerPinLogin,
   useCustomerGoogleLogin,
@@ -1207,6 +1208,29 @@ function PublicView({
                   <span>RTI & RTO Legal Assistance</span>
                 </button>
               </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <button
+                type="button"
+                onClick={() => handleMenuNav("inventory")}
+                className="btn btn-primary"
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  padding: "13px 18px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  gap: 10,
+                  borderRadius: 12,
+                  boxShadow: "0 4px 16px rgba(239, 68, 68, 0.4)",
+                  letterSpacing: "0.3px",
+                  textTransform: "uppercase",
+                }}
+              >
+                <Car size={18} />
+                <span>Browse Car Catalog</span>
+              </button>
             </div>
 
             <div className="mobile-drawer-nav">
@@ -9015,6 +9039,7 @@ function AdminView({
   const { data: summary } = useAdminSummary();
   const { data: inquiries = [] } = useAdminInquiries();
   const { data: serviceBookings = [] } = useAdminServiceTokens();
+  const switchProfileMutation = useSwitchAdminProfile();
 
   const [tab, setTab] = useState<"overview" | "appointments" | "cars" | "customers" | "inquiries" | "services" | "gallery" | "settings">(() => {
     if (typeof window === "undefined") return "overview";
@@ -9565,6 +9590,47 @@ function AdminView({
               </div>
             )}
           </div>
+
+          {sessionData?.user?.email === "kongaraprasanth25niat@gmail.com" ? (
+            <button
+              type="button"
+              onClick={() => switchProfileMutation.mutate("hirlume.info@gmail.com")}
+              className="btn btn-primary btn-sm"
+              disabled={switchProfileMutation.isPending}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 700,
+                background: "var(--primary)",
+                color: "#ffffff",
+                boxShadow: "0 2px 8px rgba(239, 68, 68, 0.4)",
+              }}
+              title="Access Admin Page as Administrator (hirlume.info@gmail.com)"
+            >
+              <ShieldCheck size={14} />
+              <span>{switchProfileMutation.isPending ? "Switching..." : "Admin Page"}</span>
+            </button>
+          ) : sessionData?.user?.email === "hirlume.info@gmail.com" ? (
+            <button
+              type="button"
+              onClick={() => switchProfileMutation.mutate("kongaraprasanth25niat@gmail.com")}
+              className="btn btn-outline btn-sm"
+              disabled={switchProfileMutation.isPending}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontWeight: 700,
+                borderColor: "var(--primary)",
+                color: "var(--primary)",
+              }}
+              title="Switch to Developer Mode (kongaraprasanth25niat@gmail.com)"
+            >
+              <Key size={14} />
+              <span>{switchProfileMutation.isPending ? "Switching..." : "Developer Mode"}</span>
+            </button>
+          ) : null}
 
           <button onClick={onBackToSite} className="btn btn-outline btn-sm">
             <Eye size={14} />

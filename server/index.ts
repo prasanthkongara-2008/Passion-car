@@ -111,7 +111,12 @@ async function start() {
   if (process.env.NODE_ENV === "production") {
     const distDir = path.resolve(dirname, "../dist/public");
     app.use(express.static(distDir, { maxAge: "1h", index: false }));
-    app.use((_req, res) => res.sendFile(path.join(distDir, "index.html")));
+    app.use((_req, res) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.sendFile(path.join(distDir, "index.html"));
+    });
   } else {
     const { createServer } = await import("vite");
     const vite = await createServer({
