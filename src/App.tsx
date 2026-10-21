@@ -503,14 +503,6 @@ function PublicView({
   });
   const [initialBookingPhone, setInitialBookingPhone] = useState<string>("");
 
-  const { data: adminSessionData } = useAdminSession();
-  const isDeveloperOrAdmin = Boolean(
-    adminSessionData?.authenticated ||
-    customerUser?.email?.toLowerCase() === "kongaraprasanth25niat@gmail.com" ||
-    customerUser?.email?.toLowerCase() === "hirlume.info@gmail.com" ||
-    customerUser?.email?.toLowerCase() === "passioncar877@gmail.com"
-  );
-
   const handleOpenBookings = (phonePrefill?: string) => {
     setMobileMenuOpen(false);
     if (phonePrefill) {
@@ -807,7 +799,16 @@ function PublicView({
           <nav>
             <ul className="nav-menu">
               <li><a href="#home" className="nav-link">Home</a></li>
-              <li><a href="#inventory" className="nav-link">Catalog</a></li>
+              <li>
+                <a
+                  href="#inventory"
+                  className="nav-link"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 700 }}
+                >
+                  <Car size={14} className="text-red-500" />
+                  <span>Catalog</span>
+                </a>
+              </li>
               <li><a href="#sell" className="nav-link">Sell Car</a></li>
               <li><a href="#service" className="nav-link">Services</a></li>
               <li><a href="#reviews" className="nav-link">Reviews</a></li>
@@ -832,34 +833,6 @@ function PublicView({
                   <span>My Bookings</span>
                 </button>
               </li>
-              {isDeveloperOrAdmin && (
-                <li>
-                  <button
-                    onClick={() => {
-                      if (onGoToAdmin) onGoToAdmin();
-                      else window.location.hash = "#admin";
-                    }}
-                    className="nav-link"
-                    style={{
-                      background: "rgba(239, 68, 68, 0.15)",
-                      border: "1px solid rgba(239, 68, 68, 0.4)",
-                      borderRadius: "var(--radius-full)",
-                      padding: "4px 12px",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      color: "var(--primary)",
-                      fontWeight: 700,
-                      fontSize: 13,
-                    }}
-                    title="Open Admin Page"
-                  >
-                    <ShieldCheck size={14} />
-                    <span>Admin Page</span>
-                  </button>
-                </li>
-              )}
               <li>
                 {customerUser ? (
                   <button
@@ -978,29 +951,14 @@ function PublicView({
               </button>
             )}
 
-            {isDeveloperOrAdmin && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (onGoToAdmin) onGoToAdmin();
-                  else window.location.hash = "#admin";
-                }}
-                className="btn btn-primary btn-sm"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "5px 10px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  boxShadow: "0 2px 8px rgba(239, 68, 68, 0.35)",
-                }}
-                title="Admin Page"
-              >
-                <ShieldCheck size={13} />
-                <span>Admin Page</span>
-              </button>
-            )}
+            <a
+              href="#inventory"
+              className="mobile-header-catalog-btn"
+              title="Browse Car Catalog"
+            >
+              <Car size={14} />
+              <span>Catalog</span>
+            </a>
 
             <a
               href={`tel:+${rawPhone}`}
@@ -1421,34 +1379,6 @@ function PublicView({
                 style={{ background: "transparent", border: "none", textAlign: "left", width: "100%", cursor: "pointer", font: "inherit", color: "inherit", display: "flex", alignItems: "center", gap: 12 }}
               >
                 <MapPin size={16} /> <span>Visit Showroom & Map</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onGoToAdmin) onGoToAdmin();
-                  else window.location.hash = "#admin";
-                }}
-                className="mobile-nav-item"
-                style={{
-                  background: "rgba(239, 68, 68, 0.12)",
-                  border: "1px solid rgba(239, 68, 68, 0.3)",
-                  borderRadius: "var(--radius-sm)",
-                  padding: "10px 14px",
-                  textAlign: "left",
-                  width: "100%",
-                  cursor: "pointer",
-                  font: "inherit",
-                  color: "var(--primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  fontWeight: 700,
-                  marginTop: 6,
-                }}
-              >
-                <ShieldCheck size={18} className="text-red-500" />
-                <span>Admin Page / Portal</span>
               </button>
             </div>
 
