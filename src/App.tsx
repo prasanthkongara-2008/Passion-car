@@ -4466,15 +4466,6 @@ function ServiceBookingSection({
     safeOpenWhatsApp(passMsg);
   };
 
-  const services = [
-    { title: "Periodic Maintenance Service", desc: "Engine oil change, oil/air filter replacement, fluid top-ups, 60-point checkup.", price: "From ₹4,999" },
-    { title: "Brakes & Suspension Overhaul", desc: "Brake pad replacement, disc skimming, caliper overhaul, bushing inspection.", price: "From ₹6,500" },
-    { title: "AC & Climate System Service", desc: "Evaporator foam cleaning, cabin filter replacement, refrigerant gas refill.", price: "From ₹2,499" },
-    { title: "Computer OBD-II Diagnostics", desc: "Full digital scanner diagnostics, sensor check, clearing spurious error codes.", price: "From ₹1,499" },
-    { title: "150-Point Pre-Purchase Inspection", desc: "Exhaustive physical, paint depth, chassis and mechanical evaluation.", price: "From ₹3,999" },
-    { title: "Ceramic Coating & Detailing", desc: "3-stage paint correction, 9H ceramic glass protection, deep interior steam.", price: "From ₹12,999" },
-  ];
-
   return (
     <section id="service" style={{ padding: "90px 0", background: "var(--bg-card)" }}>
       <div className="container">
@@ -4491,84 +4482,18 @@ function ServiceBookingSection({
           </p>
         </div>
 
-        <div className="service-main-grid">
-          
-          <div className="service-cards-grid">
-            {services.map((s, idx) => (
-              <div
-                key={idx}
-                style={{
-                  background: "var(--bg-dark)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius)",
-                  padding: 20,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div>
-                  <h4 style={{ fontSize: 16, color: "var(--text-main)", marginBottom: 6 }}>{s.title}</h4>
-                  <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5, marginBottom: 12 }}>{s.desc}</p>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>{s.price}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForm((prev) => ({ ...prev, servicePackage: s.title }));
-                      if (window.innerWidth <= 768) {
-                        setModalOpen(true);
-                      } else {
-                        const formEl = document.getElementById("service-booking-form");
-                        formEl?.scrollIntoView({ behavior: "smooth" });
-                      }
-                    }}
-                    style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
-                  >
-                    Select Package
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="mobile-only-action"
-            style={{
-              background: "var(--bg-dark)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              padding: 24,
-              textAlign: "center",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-            <h3 style={{ fontSize: 18, color: "var(--text-main)" }}>Book Certified Car Service Slot</h3>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
-              Receive an official digital entry pass for priority bay entry and zero wait time.
-            </p>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="btn btn-primary"
-              style={{ width: "100%", justifyContent: "center" }}
-            >
-              <Ticket size={16} />
-              <span>Open Service Booking Form</span>
-            </button>
-          </div>
-
-          <div
-            id="service-booking-form"
-            className="desktop-only-form"
-            style={{
-              background: "var(--bg-dark)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              padding: 32,
-            }}
-          >
+        <div
+          id="service-booking-form"
+          style={{
+            maxWidth: 720,
+            margin: "0 auto",
+            background: "var(--bg-dark)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            padding: "clamp(20px, 4vw, 36px)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+          }}
+        >
             {bookingPass ? (
               <div
                 style={{
@@ -4693,7 +4618,7 @@ function ServiceBookingSection({
 
                 <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div className="form-group">
-                    <label className="form-label">Service Package *</label>
+                    <label className="form-label">Service Required *</label>
                     <select
                       className="form-select"
                       value={form.servicePackage}
@@ -4887,7 +4812,6 @@ function ServiceBookingSection({
                 </form>
               </div>
             )}
-          </div>
         </div>
       </div>
 
@@ -10002,8 +9926,8 @@ function AdminView({
             },
             {
               id: "inquiries",
-              label: `Customer Leads${summary?.pendingInquiries ? ` (${summary.pendingInquiries} New)` : ""}`,
-              icon: MessageSquare,
+              label: `Notifications${summary?.pendingInquiries ? ` (${summary.pendingInquiries} New)` : ""}`,
+              icon: Bell,
             },
             {
               id: "services",
@@ -10733,8 +10657,8 @@ function AdminOverviewTab({
           )}
           {onGoToInquiries && (
             <button onClick={onGoToInquiries} className="btn btn-glass">
-              <MessageSquare size={16} />
-              <span>Customer Leads ({inquiries.length})</span>
+              <Bell size={16} />
+              <span>Notifications ({inquiries.length})</span>
             </button>
           )}
           {onGoToGallery && (
@@ -10794,7 +10718,7 @@ function AdminOverviewTab({
             </h3>
             {onGoToInquiries && (
               <button onClick={onGoToInquiries} className="btn btn-outline btn-sm">
-                <span>View All Leads & Search →</span>
+                <span>View All Notifications & Search →</span>
               </button>
             )}
           </div>
@@ -14424,7 +14348,7 @@ function AdminInquiriesTab() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
         <div>
           <h2 style={{ color: "var(--text-main)", margin: 0, fontSize: 24, fontWeight: 800 }}>
-            Incoming Notifications & Customer Leads
+            Incoming Notifications
           </h2>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
             Monitor real-time incoming test drive bookings, buying inquiries, exchange requests, and service submissions with exact date & time stamps.
@@ -14543,7 +14467,7 @@ function AdminInquiriesTab() {
             className={`btn btn-sm ${typeFilter === "all" ? "btn-primary" : "btn-glass"}`}
             style={{ fontSize: 11, padding: "4px 10px" }}
           >
-            All Leads ({counts.all})
+            All Notifications ({counts.all})
           </button>
           <button
             type="button"
