@@ -1991,22 +1991,48 @@ function PublicView({
               </button>
             </div>
           ) : (
-            <div className="inventory-grid">
-              {vehicles.map((v) => (
-                <CarCard
-                  key={v.id}
-                  vehicle={v}
-                  onViewDetails={() => handleOpenCar(v.id)}
-                  onInquire={() =>
-                    handleOpenInquiry({
-                      type: "buy",
-                      vehicleId: v.id,
-                      vehicleTitle: `${v.year} ${v.make} ${v.model} ${v.variant}`,
-                    })
-                  }
-                />
-              ))}
-            </div>
+            <>
+              <div className="inventory-grid">
+                {vehicles.slice(0, 6).map((v) => (
+                  <CarCard
+                    key={v.id}
+                    vehicle={v}
+                    onViewDetails={() => handleOpenCar(v.id)}
+                    onInquire={() =>
+                      handleOpenInquiry({
+                        type: "buy",
+                        vehicleId: v.id,
+                        vehicleTitle: `${v.year} ${v.make} ${v.model} ${v.variant}`,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+
+              <div style={{ textAlign: "center", marginTop: 44 }}>
+                <button
+                  type="button"
+                  onClick={() => navigateToCatalog()}
+                  className="btn btn-primary btn-lg"
+                  style={{
+                    padding: "16px 38px",
+                    fontSize: 15,
+                    fontWeight: 800,
+                    borderRadius: "var(--radius-full)",
+                    boxShadow: "0 8px 24px rgba(239, 68, 68, 0.35)",
+                    gap: 12,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    letterSpacing: "0.3px",
+                  }}
+                  title="Open Dedicated Full Car Catalog"
+                >
+                  <Car size={18} />
+                  <span>View More Cars in Catalog</span>
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </>
           )}
         </div>
       </section>
